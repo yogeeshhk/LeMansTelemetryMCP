@@ -13,7 +13,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Operating System :: Microsoft :: Windows",
 ]
-dependencies = ["duckdb==1.5.5"]
+dependencies = ["duckdb==1.5.5", "numpy==2.5.3", "mcp==1.30.0"]
 
 [project.optional-dependencies]
 dev = ["pytest==9.1.1", "build==1.6.1"]

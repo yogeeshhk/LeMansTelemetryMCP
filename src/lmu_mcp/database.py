@@ -149,3 +149,51 @@ class Repository:
                 return inspect_connection(c,session_id)
         except duckdb.Error as exc:
             raise InspectionError("inspection_failed", "Database opened but its schema could not be inspected safely.") from exc
+
+
+class SignalReader:
+    """Bounded numeric reads through inspected base-table source references."""
+    def __init__(self, connection, inspection):
+        self.connection = connection
+        self.inspection = inspection
+        self.loaded_rows = 0
+
+    def values(self, source, columns=None):
+        import numpy as np
+        from .config import MAX_SOURCE_SAMPLES, MAX_TOTAL_SOURCE_SAMPLES
+        table = next((t for t in self.inspection.tables
+                      if (t.schema, t.name, t.kind) == (source.schema, source.table, "BASE TABLE")), None)
+        columns = tuple(columns or source.value_columns)
+        if table is None or not set(columns) <= {c.name for c in table.columns}:
+            raise InspectionError("invalid_source", "Source must refer to inspected base-table columns.")
+        count = table.row_count
+        if count > MAX_SOURCE_SAMPLES or self.loaded_rows + count > MAX_TOTAL_SOURCE_SAMPLES:
+            raise InspectionError("source_limit", "Recording exceeds the per-request source budget; use a shorter recording.")
+        self.loaded_rows += count
+        qualified = identifier(source.schema) + "." + identifier(source.table)
+        sql = "SELECT " + ",".join(identifier(c) for c in columns) + " FROM " + qualified + " ORDER BY rowid LIMIT ?"
+        result = self.connection.execute(sql, [MAX_SOURCE_SAMPLES + 1]).fetchnumpy()
+        arrays = []
+        for name in columns:
+            value = np.ma.asarray(result[name], dtype=float).filled(np.nan)
+            arrays.append(value)
+        return np.column_stack(arrays)
+
+    def metadata(self):
+        allowed = {"Version", "RecordingTime", "SessionTime", "SessionType", "TrackName", "TrackLayout", "WeatherConditions", "CarName", "CarClass"}
+        table = next((t for t in self.inspection.tables if (t.schema,t.name,t.kind)==("main","metadata","BASE TABLE")),None)
+        if table is None or not {"key","value"} <= {c.name for c in table.columns}:
+            return {}
+        rows = self.connection.execute("SELECT key, left(value, 256) FROM metadata WHERE key IN (SELECT unnest(?)) LIMIT 20", [sorted(allowed)]).fetchall()
+        return dict(rows)
+
+    def extrema(self, source):
+        # Validate the source without reading its complete values.
+        table = next((t for t in self.inspection.tables if (t.schema,t.name,t.kind)==(source.schema,source.table,"BASE TABLE")),None)
+        if table is None or not set(source.value_columns) <= {c.name for c in table.columns}:
+            raise InspectionError("invalid_source", "Unknown source.")
+        fields = []
+        for col in source.value_columns:
+            fields += ["min("+identifier(col)+")", "max("+identifier(col)+")"]
+        row = self.connection.execute("SELECT "+",".join(fields)+" FROM "+identifier(source.schema)+"."+identifier(source.table)).fetchone()
+        return {col: {"min":row[2*i],"max":row[2*i+1]} for i,col in enumerate(source.value_columns)}
