@@ -69,6 +69,7 @@ For each small implementation step: make the change, run relevant tests/checks, 
 
 ### Progress log
 
+- Phase 2 complete: moved the tested inspector into `src/lmu_mcp/database.py`, split source contracts into `models.py`, centralized the fixed path/limits in `config.py`, and retained mapping in `schema.py`. Added analysis/tools namespaces, `pyproject.toml`, `MANIFEST.in`, installation/build README and build-artifact ignores. Editable install and `python -m build` passed; 22 tests passed against both editable and fresh wheel installs (wheel tests ran outside the repository). Archive checks confirmed the expected modules/docs and no private runtime/database files; fresh-environment `pip check` passed. Phase 3 is next; Milestone 1 remains open.
 - Repository cleanup: removed unused, untracked `telemetry.py`, `requirements.txt` and `requirements-dev.txt`; updated stale documentation. Phase 1 regression suite: 22 passed. Package/dependency setup remains scheduled for Phase 2.
 - Phase 1 complete, step 2: added standalone `inspection.py` and `schema.py` with conservative aliases, missing/ambiguous mappings, read-only discovery/inspection and explicit unavailable/WAL errors. `python -m pytest tests/test_phase1.py -q`: 22 passed. Real-file smoke test: 57 inspected, two WAL recordings skipped, one schema variant; SHA-256/size/mtime unchanged for all 61 database/WAL files. See `docs/schema-inspection.md`. Phase 2 is next; Milestone 1 remains open.
 - Phase 1, step 1 complete: inspected all 59 recordings (57 readable with one schema signature, two WAL files skipped); saved the 104-table inventory and proposed adaptations in `docs/schema-inspection.md`. Sample rows remain in ignored `.runtime/phase1-samples.json`. Verified supplied-file SHA-256 unchanged and inventory/catalog counts. Schema abstraction and its tests remain pending.
@@ -164,6 +165,8 @@ lmu-mcp/
 ```
 
 Keep SQL/database access separate from MCP tool definitions.
+
+The tree is the target architecture across phases. Phase 2 creates the installable package, shared models/configuration, existing database/schema modules and analysis/tools namespaces. Add executable server, telemetry/alignment and analysis modules when their implementation phases arrive; empty namespaces are scaffolding, not completed features. Verify editable installation, build a wheel from the source archive, and run existing tests against a fresh wheel installation outside the source checkout. Keep build products and environment files ignored.
 
 ## Phase 3 — MCP tools
 

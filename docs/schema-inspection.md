@@ -158,13 +158,13 @@ Inspection date: 2026-09-23. Scope: the fixed telemetry directory in `plan.md`.
 
 ## Phase 1 implementation and verification
 
-The Phase 1 modules are intentionally standalone; Phase 2 will organize the package:
+Phase 1 behavior is now organized in the Phase 2 package:
 
-- `inspection.py`: fixed-root recursive discovery, read-only connections, explicit WAL/locked-file errors, table/view/column/type/count inspection, bounded numeric sample rows, and catalog inspection. Views are described but never executed; metadata values are omitted.
-- `schema.py`: typed table/source descriptions and a canonical `ChannelMap`, with normalized aliases, source units/frequencies, multi-component sources, explicit missing channels and ambiguity reporting. Supports the observed channel/event catalogs and a synthetic wide-table layout; it does not reconstruct timestamps or perform coaching calculations.
+- `src/lmu_mcp/database.py`: fixed-root recursive discovery, read-only connections, explicit WAL/locked-file errors, table/view/column/type/count inspection, bounded numeric sample rows, and catalog inspection. Views are described but never executed; metadata values are omitted.
+- `src/lmu_mcp/schema.py` and `src/lmu_mcp/models.py`: typed table/source descriptions and a canonical `ChannelMap`, with normalized aliases, source units/frequencies, multi-component sources, explicit missing channels and ambiguity reporting. Supports the observed channel/event catalogs and a synthetic wide-table layout; it does not reconstruct timestamps or perform coaching calculations.
 - `tests/test_phase1.py`: 22 passing synthetic tests covering observed and alternate schemas, missing/unknown/ambiguous signals, invalid catalog entries, four-component channels, unexecuted views, recursive/new-file discovery, WAL and lock handling, Windows junction/path confinement, corruption and unchanged source files.
 
-Prerequisites for this phase: Python 3.13, DuckDB 1.5.5 and pytest 9.1.1 (already installed in the local `.venv`). The reproducible package/dependency setup belongs to Phase 2.
+Prerequisites: Python 3.13 and the dependencies declared in `pyproject.toml`. Install the package with `python -m pip install -e ".[dev]"`; see `README.md` for Windows commands.
 
 Run the tests from the project directory:
 
@@ -175,7 +175,7 @@ Run the tests from the project directory:
 The analysis interface can be called directly, without an MCP server:
 
 ```python
-from inspection import Repository
+from lmu_mcp.database import Repository
 
 repository = Repository()  # Always the fixed production telemetry directory.
 sessions = repository.discover()
@@ -187,4 +187,4 @@ Select a recording without `wal_present` status before inspecting it. Discovery 
 
 Real-file verification passed: the new inspector read 57 recordings, reported two WAL-dependent recordings without opening them, and found one schema variant. All 61 database/WAL files retained their SHA-256 hashes, sizes and modification times; none were added or removed. The selected full report remains local in `.runtime/phase1-inspection.json`. No other real-world schema variant is claimed as verified.
 
-Phase 1 is complete. Phase 2 and the remaining Milestone 1 requirements have not been started by this step. The earlier untracked telemetry prototype and requirements files were removed after Phase 1 because they were unused by the tested inspector. Phase 2 will establish the package and its dependency declarations.
+Phase 1 is complete; current package/phase status is tracked in `plan.md`. The earlier untracked telemetry prototype and requirements files were removed because they were unused by the tested inspector. Package dependency declarations now live in `pyproject.toml`.

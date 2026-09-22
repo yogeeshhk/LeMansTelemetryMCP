@@ -7,8 +7,8 @@ import sys
 import duckdb
 import pytest
 
-from inspection import InspectionError, Repository, inspect_connection
-from schema import ALIASES
+from lmu_mcp.database import InspectionError, Repository, inspect_connection
+from lmu_mcp.schema import ALIASES
 
 
 def make_lmu(path):

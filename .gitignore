@@ -4,3 +4,6 @@ __pycache__/
 .runtime/
 *.duckdb
 *.wal
+build/
+dist/
+*.egg-info/

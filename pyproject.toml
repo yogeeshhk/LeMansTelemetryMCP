@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lmu-mcp"
+version = "0.1.0"
+description = "Personal read-only Le Mans Ultimate telemetry inspection and coaching tools"
+readme = "README.md"
+requires-python = ">=3.13"
+classifiers = [
+    "Private :: Do Not Upload",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: Microsoft :: Windows",
+]
+dependencies = ["duckdb==1.5.5"]
+
+[project.optional-dependencies]
+dev = ["pytest==9.1.1", "build==1.6.1"]
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["lmu_mcp", "lmu_mcp.*"]
+namespaces = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--import-mode=importlib"]

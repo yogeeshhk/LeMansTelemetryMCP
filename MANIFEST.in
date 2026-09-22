@@ -1,0 +1,2 @@
+include AGENTS.md plan.md
+recursive-include docs *.md

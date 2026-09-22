@@ -1,16 +1,13 @@
-"""Phase 1 read-only discovery/inspection. Package organization follows in Phase 2."""
+"""Read-only DuckDB discovery and inspection; independent of MCP transport."""
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass
 import math
 import os
 from pathlib import Path
 
 import duckdb
-from schema import Column, Table, ChannelMap, map_channels
-
-TELEMETRY_ROOT = Path(r"D:\Steam\steamapps\common\Le Mans Ultimate\UserData\Telemetry")
-MAX_TABLES = 512
-MAX_CATALOG_ROWS = 1024
+from .config import MAX_CATALOG_ROWS, MAX_TABLES, TELEMETRY_ROOT
+from .models import Column, Inspection, Table
+from .schema import map_channels
 
 
 class InspectionError(ValueError):
@@ -21,18 +18,6 @@ class InspectionError(ValueError):
 
 def identifier(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
-
-
-@dataclass
-class Inspection:
-    session_id: str
-    tables: list[Table]
-    channels: ChannelMap
-    catalog: dict[str, dict]
-    warnings: list[str]
-
-    def to_dict(self):
-        return asdict(self)
 
 
 def inspect_connection(connection, session_id="synthetic") -> Inspection:
