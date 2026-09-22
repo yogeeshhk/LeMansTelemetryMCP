@@ -187,4 +187,4 @@ Select a recording without `wal_present` status before inspecting it. Discovery 
 
 Real-file verification passed: the new inspector read 57 recordings, reported two WAL-dependent recordings without opening them, and found one schema variant. All 61 database/WAL files retained their SHA-256 hashes, sizes and modification times; none were added or removed. The selected full report remains local in `.runtime/phase1-inspection.json`. No other real-world schema variant is claimed as verified.
 
-Phase 1 is complete. Phase 2 and the remaining Milestone 1 requirements have not been started by this step. Existing untracked `telemetry.py` and requirements files are earlier prototype artifacts to audit during package organization, not accepted phase completion.
+Phase 1 is complete. Phase 2 and the remaining Milestone 1 requirements have not been started by this step. The earlier untracked telemetry prototype and requirements files were removed after Phase 1 because they were unused by the tested inspector. Phase 2 will establish the package and its dependency declarations.

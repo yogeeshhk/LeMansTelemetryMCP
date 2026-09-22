@@ -63,12 +63,13 @@ Observed caveats from the supplied race recording must become adapter checks and
 | 2: braking analysis | 12 | Tested zone detection and position-based zone comparison, documented thresholds and limitations. |
 | 3: corners and advanced coaching | 13 | Tested automatic/manual corner ranges and corner comparison, integrated progressive coaching workflow. |
 
-Do not start the next milestone until the current exit gate passes. Do not silently omit a phase, replace its requirements with placeholders, or call a partially tested milestone complete. If external access blocks a check, record the blocker and keep that gate open. Existing prototype code is unverified work to audit against this plan, not evidence that a phase is complete.
+Do not start the next milestone until the current exit gate passes. Do not silently omit a phase, replace its requirements with placeholders, or call a partially tested milestone complete. If external access blocks a check, record the blocker and keep that gate open. Only tested, committed implementation counts toward phase completion.
 
 For each small implementation step: make the change, run relevant tests/checks, update this plan's progress log with evidence, and create a focused Git commit before starting the next step. Run the complete applicable test suite at milestone boundaries. Documentation-only steps require document/link/consistency checks rather than unrelated application tests.
 
 ### Progress log
 
+- Repository cleanup: removed unused, untracked `telemetry.py`, `requirements.txt` and `requirements-dev.txt`; updated stale documentation. Phase 1 regression suite: 22 passed. Package/dependency setup remains scheduled for Phase 2.
 - Phase 1 complete, step 2: added standalone `inspection.py` and `schema.py` with conservative aliases, missing/ambiguous mappings, read-only discovery/inspection and explicit unavailable/WAL errors. `python -m pytest tests/test_phase1.py -q`: 22 passed. Real-file smoke test: 57 inspected, two WAL recordings skipped, one schema variant; SHA-256/size/mtime unchanged for all 61 database/WAL files. See `docs/schema-inspection.md`. Phase 2 is next; Milestone 1 remains open.
 - Phase 1, step 1 complete: inspected all 59 recordings (57 readable with one schema signature, two WAL files skipped); saved the 104-table inventory and proposed adaptations in `docs/schema-inspection.md`. Sample rows remain in ignored `.runtime/phase1-samples.json`. Verified supplied-file SHA-256 unchanged and inventory/catalog counts. Schema abstraction and its tests remain pending.
 - Personal-use scope update: fixed the telemetry root, removed directory overrides and multi-user architecture requirements, retained internal test-root injection and existing read-only/ngrok safeguards. Documentation checks passed for consistent paths and commands, all 13 phase gates, balanced code fences and required test/commit rules.
