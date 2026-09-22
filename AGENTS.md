@@ -1,5 +1,11 @@
 # Repository development instructions
 
+## Personal-project scope
+
+- Build for one owner. Do not add multi-user support, user accounts, roles, tenant isolation, per-user storage or an OAuth service.
+- Use the fixed telemetry root `D:\Steam\steamapps\common\Le Mans Ultimate\UserData\Telemetry`, defined once in the application. Do not expose directory selection through CLI arguments, environment variables or a UI. Internal dependency injection of temporary directories is allowed for isolated tests.
+- If the fixed directory is unavailable, explain the error; do not search other installations or fall back to another location. Retain read-only access, path confinement and the private-URL ngrok model.
+
 ## Plan and milestones
 
 - Read `plan.md` before implementation. It is the single source of truth for scope, phase order and milestone acceptance criteria; do not create competing plans.
@@ -31,7 +37,7 @@
 ## Database and numerical correctness
 
 - Open original telemetry only with `read_only=True`. Never migrate, checkpoint, repair, recover, delete or otherwise write to original DuckDB/WAL files.
-- Discover recordings recursively and confine resolved session paths to the configured root, including Windows junctions and symlinks. Do not expose arbitrary SQL or arbitrary file access.
+- Discover recordings recursively and confine resolved session paths to the fixed telemetry root, including Windows junctions and symlinks. Do not expose arbitrary SQL or arbitrary file access.
 - Parameterize values and validate SQL identifiers against inspected schemas. Disable unneeded external database access and extension loading. Do not execute untrusted views or SQL from metadata merely because it appears in a database.
 - Inspect the supplied schema before writing adapters. Support verified aliases; do not silently guess ambiguous channel mappings, units, wheel order, lap validity or corner names.
 - Validate clocks, frequency ratios, sample counts, lap resets, partial laps, missing values, gaps and non-monotonic distance. Report inferred timestamps and reject alignment that cannot be supported by the data.
@@ -43,7 +49,7 @@
 ## Windows and remote access
 
 - Follow the fixed loopback port and launcher contract in `plan.md`. Recheck the port at startup; never kill an unrelated listener or silently change the port.
-- Keep Host/Origin validation enabled and configure ngrok forwarding deliberately. Treat the private MCP URL path as a secret, not a substitute for OAuth in a multi-user deployment.
+- Keep Host/Origin validation enabled and configure ngrok forwarding deliberately. Treat the private MCP URL path as a bearer secret for the personal-use endpoint; no multi-user authentication infrastructure is required.
 - Keep secrets in ignored local configuration or environment variables. Do not log private URL paths, ngrok tokens or unnecessary driver identifiers. Explain what the personal-use endpoint exposes.
 - Start background PowerShell helpers with hidden windows. Check readiness before exposing the server, monitor owned processes, and clean up only those processes on failure or shutdown.
 - Leave the profile function and launcher in the project for the user to install. Document installation, ngrok setup, ChatGPT connection, secret rotation and troubleshooting.

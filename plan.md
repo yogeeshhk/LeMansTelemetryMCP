@@ -1,6 +1,6 @@
 # Le Mans Ultimate Telemetry MCP Server Plan
 
-Build a production-quality Python MCP server for analysing Le Mans Ultimate telemetry stored in DuckDB.
+Build a reliable personal-use Python MCP server for analysing Le Mans Ultimate telemetry stored in DuckDB.
 The primary consumer will be an AI driving coach such as ChatGPT. The AI should never need to load an entire telemetry database. Instead, it should progressively query session → laps → sectors/corners → high-resolution telemetry.
 
 ## Objective
@@ -34,6 +34,16 @@ Do not build a frontend.
 
 ## Scope, evidence and implementation gates
 
+This is a single-owner personal project. Do not build multi-user support, accounts, roles, tenancy, per-user storage or an OAuth service. Keep the existing private-URL ngrok access model and basic read-only/path safeguards.
+
+The telemetry directory is fixed:
+
+```text
+D:\Steam\steamapps\common\Le Mans Ultimate\UserData\Telemetry
+```
+
+Define this path once as an application constant. Do not add a directory picker, a telemetry-directory CLI option or an environment override. Tests may inject temporary roots internally; this is not a user-facing configuration feature.
+
 `plan.md` is the sole implementation plan. Follow every phase in the order below; the advanced braking and corner phases follow the complete core milestone. Requirements for safety, bounded output and testing apply from the first change, even before their dedicated phase is completed.
 
 Scope is coaching from recorded telemetry, not a live shared-memory plugin. Preserve original DuckDB files. Do not expose arbitrary SQL, database writes, arbitrary filesystem reads or a frontend. Provide fuel/tyre statistics and compact coaching context through the summary/channel tools where supported; avoid duplicating tools merely to give them coaching-oriented names.
@@ -49,7 +59,7 @@ Observed caveats from the supplied race recording must become adapter checks and
 
 | Milestone | Required phases | Exit gate |
 | --- | --- | --- |
-| 1: working core and remote access | 1?11, sequentially | Real-file schema report, bounded core tools, tests, CLI, diagnostics, README, HTTP handshake and Windows/ngrok launcher validation. |
+| 1: working core and remote access | 1-11, sequentially | Real-file schema report, bounded core tools, tests, CLI, diagnostics, README, HTTP handshake and Windows/ngrok launcher validation. |
 | 2: braking analysis | 12 | Tested zone detection and position-based zone comparison, documented thresholds and limitations. |
 | 3: corners and advanced coaching | 13 | Tested automatic/manual corner ranges and corner comparison, integrated progressive coaching workflow. |
 
@@ -59,14 +69,15 @@ For each small implementation step: make the change, run relevant tests/checks, 
 
 ### Progress log
 
+- Personal-use scope update: fixed the telemetry root, removed directory overrides and multi-user architecture requirements, retained internal test-root injection and existing read-only/ngrok safeguards. Documentation checks passed for consistent paths and commands, all 13 phase gates, balanced code fences and required test/commit rules.
 - Planning: merged the prior scope and deployment caveats; reordered all 13 phases to make the milestone gates executable. No implementation phase is declared complete by this planning update.
 - Planning validation: Python assertions passed for all 13 sequential phases, retained deployment/data caveats, milestone consistency, required agent rules, balanced code fences and removal of redundant plans. Application tests are not applicable to this documentation-only step. Initialized local Git for the required per-step commits; existing prototype files remain outside this documentation commit.
 
 ## Phase 1 — Inspect the telemetry
 
 Before implementing assumptions about the LMU schema:
-Accept a configurable telemetry directory.
-Discover `.duckdb` files recursively on each listing, including newly saved recordings and nested directories. Preserve relative session identifiers; do not invent a race-weekend identifier. Resolve paths within the configured telemetry root, including Windows junctions and symlinks.
+Use the fixed telemetry directory above. If it is missing or unreadable, return an actionable error; do not search alternative installations or silently fall back to another directory.
+Discover `.duckdb` files recursively on each listing, including newly saved recordings and nested directories. Preserve relative session identifiers; do not invent a race-weekend identifier. Resolve paths within the fixed telemetry root, including Windows junctions and symlinks.
 Open databases in `read_only=True`. Report locked, incomplete, unsupported or WAL-recovery-dependent files clearly; never recover or modify an original database. One unavailable session must not prevent listing other recordings. Save schema findings and data-quality evidence before implementing schema-specific logic.
 
 Inspect:
@@ -546,15 +557,10 @@ lmu-mcp inspect "session.duckdb"
 ```
 
 ```bash
-lmu-mcp serve \
-    --telemetry-dir "C:\Program Files (x86)\Steam\steamapps\common\Le Mans Ultimate\UserData\Telemetry"
+lmu-mcp serve
 ```
 
-Also support an environment variable:
-
-```text
-LMU_TELEMETRY_DIR
-```
+The command uses the fixed telemetry directory automatically. Resolve inspect/diagnose session filenames relative to that directory; reject paths outside it.
 
 Provide both MCP stdio and Streamable HTTP in Milestone 1, sharing the same analysis layer. Streamable HTTP is required for the requested ChatGPT/ngrok workflow; it is not deferred.
 
@@ -562,13 +568,13 @@ Bind HTTP to `127.0.0.1:18765`. This port passed a local bind test during inspec
 
 Provide `startLeMansMCP.ps1` in this directory and a copyable PowerShell profile function named `startLeMansMCP`. Leave profile installation to the user. The command must:
 
-1. Validate configuration, dependencies, ngrok availability and the fixed port.
+1. Validate the fixed telemetry directory, dependencies, ngrok availability and the fixed port.
 2. Start the server, verify readiness, then start ngrok for that port.
 3. Print the full HTTPS MCP URL suitable for ChatGPT, including its private random path.
 4. Detect startup failures and unexpected child-process exits.
 5. Stop only processes it started on failure or Ctrl+C; run background helpers with hidden windows.
 
-Keep the random path stable in ignored local configuration so restarting does not unnecessarily change the MCP path. Treat it as a bearer secret, not OAuth: anyone with the full URL can access the exposed telemetry. Avoid logging it in access logs; display it only for user setup. Support rotation, keep secrets out of Git and document this personal-use access model. Retain MCP Host/Origin validation and configure ngrok host forwarding appropriately. Do not claim a remote test passed unless a real remote connection was exercised.
+Keep the random path stable in ignored local configuration so restarting does not unnecessarily change the MCP path. Treat it as a bearer secret for this personal project: anyone with the full URL can access the exposed telemetry. Avoid logging it in access logs; display it only for user setup. Support rotation, keep secrets out of Git and document this personal-use access model. Retain MCP Host/Origin validation and configure ngrok host forwarding appropriately. Do not claim a remote test passed unless a real remote connection was exercised.
 
 ## Phase 10 — Diagnostics
 
@@ -607,7 +613,7 @@ Also warn about important missing channels.
 README should explain:
 
 - installation
-- locating LMU telemetry
+- the fixed LMU telemetry location and missing-directory troubleshooting
 - starting MCP
 - adding it to an MCP client
 - tool descriptions
@@ -811,7 +817,7 @@ Start with a working vertical slice containing:
 - Streamable HTTP on port 18765
 - Windows launcher and ngrok integration
 
-After all Milestone 1 gates (Phases 1?11) pass, proceed in order to:
+After all Milestone 1 gates (Phases 1-11) pass, proceed in order to:
 
 - braking zones
 - corner detection
@@ -831,7 +837,7 @@ Then implement against what is actually present rather than guessing LMU's schem
 I should be able to run:
 
 ```bash
-lmu-mcp serve --telemetry-dir "<LMU telemetry directory>"
+lmu-mcp serve
 ```
 
 Then an MCP client should be able to:
