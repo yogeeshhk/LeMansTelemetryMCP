@@ -155,3 +155,36 @@ Inspection date: 2026-09-23. Scope: the fixed telemetry directory in `plan.md`.
 | channelsList | channelName: VARCHAR, frequency: INTEGER, unit: VARCHAR | 61 | catalog/metadata | - | - |
 | eventsList | eventName: VARCHAR, unit: VARCHAR | 40 | catalog/metadata | - | - |
 | metadata | key: VARCHAR, value: VARCHAR | 12 | catalog/metadata | - | - |
+
+## Phase 1 implementation and verification
+
+The Phase 1 modules are intentionally standalone; Phase 2 will organize the package:
+
+- `inspection.py`: fixed-root recursive discovery, read-only connections, explicit WAL/locked-file errors, table/view/column/type/count inspection, bounded numeric sample rows, and catalog inspection. Views are described but never executed; metadata values are omitted.
+- `schema.py`: typed table/source descriptions and a canonical `ChannelMap`, with normalized aliases, source units/frequencies, multi-component sources, explicit missing channels and ambiguity reporting. Supports the observed channel/event catalogs and a synthetic wide-table layout; it does not reconstruct timestamps or perform coaching calculations.
+- `tests/test_phase1.py`: 22 passing synthetic tests covering observed and alternate schemas, missing/unknown/ambiguous signals, invalid catalog entries, four-component channels, unexecuted views, recursive/new-file discovery, WAL and lock handling, Windows junction/path confinement, corruption and unchanged source files.
+
+Prerequisites for this phase: Python 3.13, DuckDB 1.5.5 and pytest 9.1.1 (already installed in the local `.venv`). The reproducible package/dependency setup belongs to Phase 2.
+
+Run the tests from the project directory:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests/test_phase1.py -q
+```
+
+The analysis interface can be called directly, without an MCP server:
+
+```python
+from inspection import Repository
+
+repository = Repository()  # Always the fixed production telemetry directory.
+sessions = repository.discover()
+report = repository.inspect(sessions[0]["session_id"])
+channel_map = report.channels
+```
+
+Select a recording without `wal_present` status before inspecting it. Discovery does not open files: a `discovered` status is not a readability guarantee. A failed individual inspection raises `InspectionError` with a stable code and a retry/action message.
+
+Real-file verification passed: the new inspector read 57 recordings, reported two WAL-dependent recordings without opening them, and found one schema variant. All 61 database/WAL files retained their SHA-256 hashes, sizes and modification times; none were added or removed. The selected full report remains local in `.runtime/phase1-inspection.json`. No other real-world schema variant is claimed as verified.
+
+Phase 1 is complete. Phase 2 and the remaining Milestone 1 requirements have not been started by this step. Existing untracked `telemetry.py` and requirements files are earlier prototype artifacts to audit during package organization, not accepted phase completion.
