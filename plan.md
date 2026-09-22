@@ -1,0 +1,849 @@
+# Le Mans Ultimate Telemetry MCP Server Plan
+
+Build a production-quality Python MCP server for analysing Le Mans Ultimate telemetry stored in DuckDB.
+The primary consumer will be an AI driving coach such as ChatGPT. The AI should never need to load an entire telemetry database. Instead, it should progressively query session → laps → sectors/corners → high-resolution telemetry.
+
+## Objective
+
+Create a read-only MCP server that:
+
+- discovers LMU .duckdb telemetry files
+- understands their schema automatically
+- exposes useful racing-analysis tools
+- prevents excessively large responses
+- aligns telemetry by lap distance
+- supports comparing laps
+- detects braking zones and major corner events
+- works with different LMU telemetry schemas where possible
+- keeps the original DuckDB untouched
+- is easy to run locally
+- supports stdio and Streamable HTTP for ChatGPT access through ngrok in Milestone 1
+
+Use Python.
+
+Prefer:
+
+- duckdb
+- mcp / FastMCP from the official MCP Python SDK
+- pydantic
+- numpy
+- pandas only where useful
+- pytest
+
+Do not build a frontend.
+
+## Scope, evidence and implementation gates
+
+`plan.md` is the sole implementation plan. Follow every phase in the order below; the advanced braking and corner phases follow the complete core milestone. Requirements for safety, bounded output and testing apply from the first change, even before their dedicated phase is completed.
+
+Scope is coaching from recorded telemetry, not a live shared-memory plugin. Preserve original DuckDB files. Do not expose arbitrary SQL, database writes, arbitrary filesystem reads or a frontend. Provide fuel/tyre statistics and compact coaching context through the summary/channel tools where supported; avoid duplicating tools merely to give them coaching-oriented names.
+
+Observed caveats from the supplied race recording must become adapter checks and regression cases, not universal assumptions about every LMU file:
+
+- Signals are split between sampled tables, timestamped event tables and catalogs containing units/frequencies. Most sampled tables lack explicit timestamps. Validate frequency ratios and sample counts against the recording clock; report inferred alignment, and refuse unsupported reconstruction rather than inventing precision.
+- The recording contains pre-race time, an unclosed post-finish tail, a clock gap, an impact event and a final lap-completion event with zero reported lap time. Separate recorded timing from inferred boundary duration; flag incomplete or suspect laps.
+- Official lap validity is unavailable in this schema. Return `valid: null`; expose benchmark eligibility and exclusion reasons separately. Do not describe a candidate as a certified clean lap.
+- Units must come from verified metadata or explicit conversions. Ground Speed is recorded in km/h in this file. Do not relabel steering as degrees or guess wheel order from component indices.
+- Do not invent named corners, race-weekend groupings or missing metadata. Automatic corners are approximate distance ranges; named ranges require supplied track definitions.
+- Compare compatible track layouts and cars. Report fuel, tyre, weather, traffic and data-quality limitations; measured differences alone do not establish a driving error.
+
+| Milestone | Required phases | Exit gate |
+| --- | --- | --- |
+| 1: working core and remote access | 1?11, sequentially | Real-file schema report, bounded core tools, tests, CLI, diagnostics, README, HTTP handshake and Windows/ngrok launcher validation. |
+| 2: braking analysis | 12 | Tested zone detection and position-based zone comparison, documented thresholds and limitations. |
+| 3: corners and advanced coaching | 13 | Tested automatic/manual corner ranges and corner comparison, integrated progressive coaching workflow. |
+
+Do not start the next milestone until the current exit gate passes. Do not silently omit a phase, replace its requirements with placeholders, or call a partially tested milestone complete. If external access blocks a check, record the blocker and keep that gate open. Existing prototype code is unverified work to audit against this plan, not evidence that a phase is complete.
+
+For each small implementation step: make the change, run relevant tests/checks, update this plan's progress log with evidence, and create a focused Git commit before starting the next step. Run the complete applicable test suite at milestone boundaries. Documentation-only steps require document/link/consistency checks rather than unrelated application tests.
+
+### Progress log
+
+- Planning: merged the prior scope and deployment caveats; reordered all 13 phases to make the milestone gates executable. No implementation phase is declared complete by this planning update.
+- Planning validation: Python assertions passed for all 13 sequential phases, retained deployment/data caveats, milestone consistency, required agent rules, balanced code fences and removal of redundant plans. Application tests are not applicable to this documentation-only step. Initialized local Git for the required per-step commits; existing prototype files remain outside this documentation commit.
+
+## Phase 1 — Inspect the telemetry
+
+Before implementing assumptions about the LMU schema:
+Accept a configurable telemetry directory.
+Discover `.duckdb` files recursively on each listing, including newly saved recordings and nested directories. Preserve relative session identifiers; do not invent a race-weekend identifier. Resolve paths within the configured telemetry root, including Windows junctions and symlinks.
+Open databases in `read_only=True`. Report locked, incomplete, unsupported or WAL-recovery-dependent files clearly; never recover or modify an original database. One unavailable session must not prevent listing other recordings. Save schema findings and data-quality evidence before implementing schema-specific logic.
+
+Inspect:
+
+- tables
+- views
+- columns
+- types
+- row counts
+- sample rows
+
+Identify likely telemetry channels including:
+
+- timestamp/time
+- lap number
+- lap distance
+- ground speed
+- throttle
+- brake
+- steering
+- gear
+- RPM
+- longitudinal acceleration
+- lateral acceleration
+- yaw rate
+- wheel speeds
+- ABS
+- TC
+- brake bias
+- tyre data
+
+Produce a schema abstraction rather than hardcoding one exact LMU schema.
+Create something like:
+
+```python
+@dataclass
+class ChannelMap:
+    timestamp: str | None
+    lap_number: str | None
+    lap_distance: str | None
+    speed: str | None
+    throttle: str | None
+    brake: str | None
+    steering: str | None
+    gear: str | None
+    rpm: str | None
+    ...
+```
+
+Support channel aliases so schema changes do not immediately break the application.
+
+## Phase 2 — Project structure
+
+Use a structure approximately like:
+
+```text
+lmu-mcp/
+├── pyproject.toml
+├── README.md
+├── src/
+│   └── lmu_mcp/
+│       ├── __init__.py
+│       ├── server.py
+│       ├── config.py
+│       ├── database.py
+│       ├── schema.py
+│       ├── models.py
+│       ├── telemetry.py
+│       ├── alignment.py
+│       ├── analysis/
+│       │   ├── laps.py
+│       │   ├── braking.py
+│       │   ├── corners.py
+│       │   └── comparison.py
+│       └── tools/
+│           ├── sessions.py
+│           ├── laps.py
+│           ├── telemetry.py
+│           └── analysis.py
+└── tests/
+```
+
+Keep SQL/database access separate from MCP tool definitions.
+
+## Phase 3 — MCP tools
+
+Implement the following tools.
+
+### `list_sessions`
+
+Return available telemetry recordings.
+Return compact metadata:
+
+```json
+{
+  "sessions": [
+    {
+      "session_id": "...",
+      "filename": "...",
+      "modified_at": "...",
+      "size_bytes": 123
+    }
+  ]
+}
+```
+
+Never expose arbitrary filesystem paths unless necessary.
+
+### `get_session_info`
+
+Input:
+
+```json
+{
+  "session_id": "..."
+}
+```
+
+Return whatever metadata is available:
+
+- car
+- track
+- session type
+- start time
+- number of laps
+- available channels
+- approximate telemetry sample rates
+- database tables
+- session duration
+
+Missing metadata should be null, not guessed.
+
+### `list_channels`
+
+Input:
+
+```json
+{
+  "session_id": "..."
+}
+```
+
+Return:
+
+- canonical channel name
+- source column
+- units if known
+- sample count
+- approximate frequency
+- min/max where inexpensive
+
+Example:
+
+```json
+{
+  "channels": [
+    {
+      "name": "speed",
+      "source": "Ground Speed",
+      "unit": "km/h",
+      "frequency_hz": 100
+    }
+  ]
+}
+```
+
+### `list_laps`
+
+Input:
+
+```json
+{
+  "session_id": "..."
+}
+```
+
+Return one compact record per lap:
+
+```json
+{
+  "lap": 12,
+  "lap_time_s": 206.991,
+  "valid": null,
+  "max_speed_kph": 312.4,
+  "sample_count": 20578
+}
+```
+
+If LMU does not explicitly mark validity, expose validity as null.
+Do not infer invalidity without evidence.
+
+### `get_lap_summary`
+
+Input:
+
+```json
+{
+  "session_id": "...",
+  "lap": 12
+}
+```
+
+Return useful coaching metrics such as:
+
+- lap time
+- maximum speed
+- minimum speed
+- average speed
+- percentage throttle
+- percentage braking
+- percentage coasting
+- number of braking events
+- number of gear changes
+- ABS activation count/time
+- TC activation count/time
+- steering correction metrics if practical
+
+Do not return raw telemetry here.
+
+### `get_telemetry`
+
+Inputs:
+
+```json
+{
+  "session_id": "...",
+  "lap": 12,
+  "channels": [
+    "speed",
+    "brake",
+    "throttle",
+    "steering",
+    "gear"
+  ],
+  "start_distance_m": 3000,
+  "end_distance_m": 3400,
+  "resolution_m": 1.0
+}
+```
+
+Requirements:
+
+- align samples to lap distance
+- interpolate continuous channels
+- use nearest/forward appropriate behaviour for discrete channels
+- return data ordered by distance
+- return units
+- indicate interpolation method
+- never silently return millions of rows
+
+Response:
+
+```json
+{
+  "lap": 12,
+  "start_distance_m": 3000,
+  "end_distance_m": 3400,
+  "resolution_m": 1,
+  "channels": {
+    "speed_kph": [...],
+    "brake": [...],
+    "throttle": [...],
+    "steering": [...],
+    "gear": [...]
+  },
+  "distance_m": [...]
+}
+```
+
+Prefer column-oriented arrays over thousands of repeated JSON objects because they are much more token-efficient.
+
+### `compare_laps`
+
+Inputs:
+
+```json
+{
+  "session_id": "...",
+  "laps": [7, 11],
+  "channels": [
+    "speed",
+    "brake",
+    "throttle",
+    "steering"
+  ],
+  "start_distance_m": 0,
+  "end_distance_m": null,
+  "resolution_m": 2
+}
+```
+
+Return aligned telemetry for both laps.
+
+Also calculate when possible:
+
+- speed delta
+- estimated cumulative time delta
+- brake-point differences
+- throttle pickup differences
+
+Prefer elapsed-time differences at shared distance crossings when recorded timestamps support them. Otherwise reconstruct elapsed time by integrating distance over speed, with explicit handling of stopped samples, reversals and gaps.
+Document the methodology.
+Do not pretend it is an exact official timing delta if it is reconstructed.
+
+## Phase 4 — Progressive querying
+
+Design all MCP descriptions so an LLM naturally follows this workflow:
+
+```text
+list_sessions
+      ↓
+get_session_info
+      ↓
+list_laps
+      ↓
+get_lap_summary
+      ↓
+compare_laps at low resolution
+      ↓
+identify interesting area
+      ↓
+compare_corner / compare_braking_zones
+      ↓
+get_telemetry at high resolution
+```
+
+This is important.
+The model should not normally request full-resolution data for an entire lap.
+Tool descriptions should explicitly encourage progressive investigation.
+
+## Phase 5 — Safety and query limits
+
+The MCP must be strictly read-only.
+DuckDB connections:
+
+```python
+duckdb.connect(path, read_only=True)
+```
+
+Do NOT expose arbitrary SQL as a normal MCP tool.
+Internally parameterise queries.
+
+Enforce configurable limits such as:
+
+```python
+MAX_CHANNELS = 20
+MAX_LAPS_PER_REQUEST = 10
+MAX_OUTPUT_SAMPLES = 5000
+MAX_DISTANCE_RANGE_HIGH_RES_M = 2000
+DEFAULT_RESOLUTION_M = 2.0
+MIN_RESOLUTION_M = 0.1
+```
+
+If a query would exceed limits, return a structured error suggesting:
+
+- smaller distance range
+- lower channel count
+- lower resolution
+- querying one corner at a time
+
+Never silently truncate telemetry unless the response clearly reports that truncation occurred.
+
+## Phase 6 — Efficient data representation
+
+Optimise MCP output for LLM consumption.
+
+Prefer:
+
+```json
+{
+  "distance_m": [100, 101, 102],
+  "speed_kph": [210, 207, 202],
+  "brake": [0, 0.2, 0.7]
+}
+```
+
+instead of:
+
+```text
+[
+  {
+    "distance_m": 100,
+    "speed_kph": 210,
+    "brake": 0
+  },
+  ...
+]
+```
+
+For summaries, return compact scalar metrics.
+
+Round floating-point values sensibly:
+
+- distance: ~0.1 m
+- speed: ~0.1 km/h
+- controls: 3 decimal places
+- time: milliseconds where useful
+
+Do not destroy precision internally.
+
+## Phase 7 — Caching
+
+Telemetry alignment and derived metrics can be expensive.
+
+Implement in-process caching for:
+
+- schema inspection
+- channel mapping
+- lap boundaries
+- distance-aligned laps
+- braking-zone detection
+- corner detection
+
+Cache keys should include:
+
+- session
+- lap
+- requested channels
+- resolution
+- relevant analysis settings
+
+Invalidate cache when the telemetry file's modification timestamp changes.
+Do not modify the DuckDB.
+
+## Phase 8 — Testing
+
+Create tests for:
+
+### Schema detection
+
+- alternate channel names
+- missing optional channels
+- unknown columns
+
+### Lap detection
+
+- normal laps
+- incomplete first lap
+- incomplete final lap
+- lap number reset
+
+### Alignment
+
+- different channel sample rates
+- missing samples
+- interpolation
+- discrete channels
+
+### Braking zones
+
+- proper brake event
+- light brake tap
+- overlapping events
+- truncated events at lap boundaries
+
+### Query protection
+
+- too many channels
+- too fine resolution
+- giant distance range
+- path traversal, absolute paths outside the root, and junction/symlink escapes
+- locked files, unsupported schemas, new recordings, and cache invalidation
+- response-size limits and explicit truncation/pagination
+- read-only behavior and unchanged original database files
+
+### Comparison
+
+Use synthetic telemetry so calculations can be checked exactly.
+Tests should not require Le Mans Ultimate to be installed. Run focused tests for every change, with tests for corrected defects and new behavior. At each milestone run the complete applicable suite and an MCP client integration test (initialize, tools/list and tools/call), including Streamable HTTP. Test launcher startup, occupied-port handling, failed readiness and process cleanup. Add an optional read-only smoke test against real LMU telemetry; keep private databases out of fixtures and Git. Record commands, outcomes and any untested external dependencies.
+
+## Phase 9 — CLI
+
+Provide commands such as:
+
+```bash
+lmu-mcp inspect "session.duckdb"
+```
+
+```bash
+lmu-mcp serve \
+    --telemetry-dir "C:\Program Files (x86)\Steam\steamapps\common\Le Mans Ultimate\UserData\Telemetry"
+```
+
+Also support an environment variable:
+
+```text
+LMU_TELEMETRY_DIR
+```
+
+Provide both MCP stdio and Streamable HTTP in Milestone 1, sharing the same analysis layer. Streamable HTTP is required for the requested ChatGPT/ngrok workflow; it is not deferred.
+
+Bind HTTP to `127.0.0.1:18765`. This port passed a local bind test during inspection, but no port is permanently guaranteed free: recheck at every startup and fail clearly if occupied. Do not kill another listener or silently select a different port.
+
+Provide `startLeMansMCP.ps1` in this directory and a copyable PowerShell profile function named `startLeMansMCP`. Leave profile installation to the user. The command must:
+
+1. Validate configuration, dependencies, ngrok availability and the fixed port.
+2. Start the server, verify readiness, then start ngrok for that port.
+3. Print the full HTTPS MCP URL suitable for ChatGPT, including its private random path.
+4. Detect startup failures and unexpected child-process exits.
+5. Stop only processes it started on failure or Ctrl+C; run background helpers with hidden windows.
+
+Keep the random path stable in ignored local configuration so restarting does not unnecessarily change the MCP path. Treat it as a bearer secret, not OAuth: anyone with the full URL can access the exposed telemetry. Avoid logging it in access logs; display it only for user setup. Support rotation, keep secrets out of Git and document this personal-use access model. Retain MCP Host/Origin validation and configure ngrok host forwarding appropriately. Do not claim a remote test passed unless a real remote connection was exercised.
+
+## Phase 10 — Diagnostics
+
+Add:
+
+```bash
+lmu-mcp diagnose session.duckdb
+```
+
+It should report:
+
+```text
+Database readable: yes
+Tables discovered: 4
+Lap channel: found
+Lap distance: found
+Speed: found
+Brake: found
+Throttle: found
+Steering: found
+Gear: found
+ABS: found
+TC: found
+```
+
+```text
+Detected laps: 23
+Usable laps: 21
+Maximum sample frequency: 100 Hz
+```
+
+Also warn about important missing channels.
+
+## Phase 11 — Documentation
+
+README should explain:
+
+- installation
+- locating LMU telemetry
+- starting MCP
+- adding it to an MCP client
+- tool descriptions
+- example coaching workflow
+- query limits
+- security/read-only behaviour
+- troubleshooting
+- Windows launcher/profile installation and ngrok configuration
+- ChatGPT connection using the printed HTTPS MCP URL
+- random-path privacy limits, rotation, and keeping credentials out of Git
+- recorded-session availability, timing uncertainty, missing validity and comparison limitations
+
+Include example questions:
+Find my fastest three valid laps, or benchmark candidates if official validity is unavailable.
+
+Compare my fastest lap with my second-fastest lap and tell me where the major differences occur.
+
+Analyse braking consistency across my five fastest laps.
+
+Look closely at the braking zone between 5200 m and 5450 m.
+
+Compare my brake release and throttle pickup through corner 7.
+
+## Phase 12 — Braking analysis
+
+Implement:
+
+### `get_braking_zones`
+
+Input:
+
+```json
+{
+  "session_id": "...",
+  "lap": 12
+}
+```
+
+Detect braking events based on configurable brake thresholds.
+For each event return:
+
+```json
+{
+  "zone": 4,
+  "start_distance_m": 5231,
+  "end_distance_m": 5382,
+  "initial_speed_kph": 281,
+  "minimum_speed_kph": 112,
+  "peak_brake": 0.98,
+  "duration_s": 2.41,
+  "distance_m": 151,
+  "abs_active_time_s": 0.15
+}
+```
+
+Thresholds must be configurable.
+Avoid treating tiny brake taps as full braking zones.
+
+### `compare_braking_zones`
+
+Inputs:
+
+```json
+{
+  "session_id": "...",
+  "lap_a": 7,
+  "lap_b": 11
+}
+```
+
+Match braking zones approximately by track position.
+
+Return differences in:
+
+- braking start
+- braking distance
+- initial speed
+- minimum speed
+- peak brake
+- brake release
+- throttle pickup
+- ABS usage
+
+This will be one of the primary coaching tools.
+
+## Phase 13 — Corner analysis
+
+Implement a basic automatic corner detector using:
+
+- lateral acceleration
+- steering
+- speed profile
+- optionally yaw rate
+
+Do not over-engineer track-map reconstruction initially.
+Expose:
+
+### `get_corners`
+
+Return approximately:
+
+```json
+{
+  "corner_id": 8,
+  "start_distance_m": 8212,
+  "apex_distance_m": 8274,
+  "end_distance_m": 8371,
+  "entry_speed_kph": 188,
+  "minimum_speed_kph": 126,
+  "exit_speed_kph": 171
+}
+```
+
+Allow the algorithm to be refined later.
+Also allow manually defined track corner ranges through optional configuration files.
+Manual definitions should override automatic detection.
+Example:
+
+```text
+tracks/
+    le_mans.json
+    spa.json
+```
+
+### `compare_corner`
+
+Inputs:
+
+```json
+{
+  "session_id": "...",
+  "corner_id": 8,
+  "laps": [7, 11]
+}
+```
+
+Return:
+
+- brake point
+- turn-in position
+- apex/min-speed position
+- minimum speed
+- throttle pickup position
+- full-throttle position
+- entry speed
+- exit speed
+- approximate time through the section
+- ABS/TC intervention
+- steering metrics
+
+## Important implementation principle
+
+Separate these layers:
+
+```text
+MCP interface
+     ↓
+Telemetry analysis API
+     ↓
+Schema abstraction
+     ↓
+DuckDB repository
+```
+
+The core telemetry-analysis functions must be callable directly from Python without MCP.
+For example:
+
+```python
+telemetry.compare_laps(...)
+```
+
+should work independently of:
+
+```python
+@mcp.tool()
+def compare_laps(...):
+    ...
+```
+
+This will make the project testable and allow building other interfaces later.
+
+## First implementation milestone
+
+Do NOT try to implement everything at once.
+
+Start with a working vertical slice containing:
+
+- session discovery
+- DuckDB schema inspection
+- automatic channel mapping
+- list_sessions
+- get_session_info
+- list_laps
+- get_lap_summary
+- get_telemetry
+- compare_laps
+- tests
+- CLI
+- README
+- diagnostics
+- Streamable HTTP on port 18765
+- Windows launcher and ngrok integration
+
+After all Milestone 1 gates (Phases 1?11) pass, proceed in order to:
+
+- braking zones
+- corner detection
+- advanced coaching metrics
+
+Before coding schema-specific logic, inspect the actual supplied LMU DuckDB database and show me:
+
+- discovered tables
+- important columns
+- inferred channel mapping
+- proposed adaptations
+
+Then implement against what is actually present rather than guessing LMU's schema.
+
+## Acceptance criteria for milestone 1
+
+I should be able to run:
+
+```bash
+lmu-mcp serve --telemetry-dir "<LMU telemetry directory>"
+```
+
+Then an MCP client should be able to:
+
+```text
+list_sessions()
+list_laps(session)
+compare_laps(session_id=session, laps=[lap_a, lap_b])
+get_telemetry(session, lap, 3000m → 3500m)
+```
+
+without loading an entire race session into the model context.
+A typical query covering a corner should return a few hundred to a few thousand values, not hundreds of thousands.
+All DuckDB access must remain read-only. The Windows `startLeMansMCP` command must start the server and ngrok, print a usable HTTPS MCP URL and clean up owned processes on exit. Report local protocol verification separately from actual ngrok/ChatGPT verification.
+Start by creating the project scaffold and implementing Milestone 1.
