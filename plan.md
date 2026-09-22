@@ -69,6 +69,7 @@ For each small implementation step: make the change, run relevant tests/checks, 
 
 ### Progress log
 
+- Phase 1, step 1 complete: inspected all 59 recordings (57 readable with one schema signature, two WAL files skipped); saved the 104-table inventory and proposed adaptations in `docs/schema-inspection.md`. Sample rows remain in ignored `.runtime/phase1-samples.json`. Verified supplied-file SHA-256 unchanged and inventory/catalog counts. Schema abstraction and its tests remain pending.
 - Personal-use scope update: fixed the telemetry root, removed directory overrides and multi-user architecture requirements, retained internal test-root injection and existing read-only/ngrok safeguards. Documentation checks passed for consistent paths and commands, all 13 phase gates, balanced code fences and required test/commit rules.
 - Planning: merged the prior scope and deployment caveats; reordered all 13 phases to make the milestone gates executable. No implementation phase is declared complete by this planning update.
 - Planning validation: Python assertions passed for all 13 sequential phases, retained deployment/data caveats, milestone consistency, required agent rules, balanced code fences and removal of redundant plans. Application tests are not applicable to this documentation-only step. Initialized local Git for the required per-step commits; existing prototype files remain outside this documentation commit.
