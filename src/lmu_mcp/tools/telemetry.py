@@ -7,16 +7,16 @@ from .common import SessionId, LapId, Channels, Distance, Resolution, READ_ONLY
 def register(mcp,runner):
     @mcp.tool(annotations=READ_ONLY, structured_output=True)
     async def get_telemetry(session_id:SessionId,lap:LapId,channels:Channels|None=None,
-                            start_distance_m:Distance=0.0,end_distance_m:Distance|None=None,
+                            start_distance_m:Distance=0.0,end_distance_m:Annotated[Distance|None,Field(description="For a detailed query, supply an explicit section end in metres. Null uses available lap coverage; reserve that for coarse overviews.")]=None,
                             resolution_m:Resolution=2.0)->dict[str, Any]:
-        """Zoom into a short distance range after summaries/coarse comparison. Returns column arrays aligned by distance, units, interpolation method and quality. Defaults: speed/brake/throttle/steering/gear. Continuous signals interpolate; discrete states hold. No extrapolation: gaps are null. Max 5000 points/20000 numeric values; increase spacing or reduce range on limit errors."""
+        """Use last to investigate one section identified by summaries/coarse compare_laps, or a distance range explicitly requested by the user. Set both distance bounds, usually covering 200-500 m, and request only relevant channels at 1-2 m spacing. For lap comparisons query the same section on both laps. Do not begin with a full lap at high resolution. Returns column arrays, units, methods and quality; gaps stay null. Increase resolution_m or narrow the range on limit errors; stop refining once the question is answered."""
         return await runner.call('get_telemetry',session_id=session_id,lap=lap,channels=channels,
                                  start_distance_m=start_distance_m,end_distance_m=end_distance_m,resolution_m=resolution_m)
 
     @mcp.tool(annotations=READ_ONLY, structured_output=True)
     async def compare_laps(session_id:SessionId,laps:Annotated[list[LapId],Field(min_length=2,max_length=10)],
                            channels:Channels|None=None,start_distance_m:Distance=0.0,
-                           end_distance_m:Distance|None=None,resolution_m:Resolution=20.0)->dict[str, Any]:
-        """Compare benchmark candidate laps within one recording at coarse spacing first (default 20 m). Returns aligned arrays, cumulative interpolated elapsed-time/speed deltas and coarse brake/throttle onset differences. Positive A-minus-B time means A is slower. Not official timing or causal driving advice. Fuel/tyres/traffic can differ; narrow interesting sections with get_telemetry."""
+                           end_distance_m:Annotated[Distance|None,Field(description="For a detailed query, supply an explicit section end in metres. Null uses available lap coverage; reserve that for coarse overviews.")]=None,resolution_m:Resolution=20.0)->dict[str, Any]:
+        """Use after list_laps and get_lap_summary for each selected candidate. Start with two laps, a few channels and 20-50 m spacing (default 20 m); put the coached lap first and reference second. Positive A-minus-B elapsed delta means A is slower. Identify local loss as delta(end)-delta(start) over a covered section, not the largest cumulative value. Then get_telemetry on that section for both laps with explicit bounds and 1-2 m spacing. Control-onset differences are coarse hints; named-corner/braking-zone tools are not available yet. Conditions can differ; deltas do not establish causation."""
         return await runner.call('compare_laps',session_id=session_id,laps=laps,channels=channels,
                                  start_distance_m=start_distance_m,end_distance_m=end_distance_m,resolution_m=resolution_m)

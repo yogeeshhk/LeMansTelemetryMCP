@@ -78,7 +78,7 @@ For a local MCP client supporting stdio, use the virtual-environment Python comm
 
 The server waits for MCP protocol messages on stdin; stdout is reserved for protocol responses. This is not an interactive command shell. The HTTP app is available through `create_server().streamable_http_app()` for integration; its default server settings are loopback port 18765. Public ngrok access and private-URL setup belong to the upcoming launcher phase. No public tunnel or ChatGPT connection has been tested yet.
 
-See [core tool contracts and methodology](docs/core-tools.md) for examples, query limits and interpretation of lap deltas.
+See [the progressive coaching workflow](docs/progressive-querying.md) for the recommended query sequence. See [core tool contracts and methodology](docs/core-tools.md) for examples, query limits and interpretation of lap deltas.
 
 ## Test and build
 

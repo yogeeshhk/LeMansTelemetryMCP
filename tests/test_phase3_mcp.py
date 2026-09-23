@@ -112,3 +112,44 @@ async def test_unexpected_errors_do_not_leak_paths():
         def broken(self): raise RuntimeError('PRIVATE PATH AND SQL')
     with pytest.raises(ToolError) as e: await Runner(Fake()).call('broken')
     assert 'PRIVATE' not in str(e.value) and 'analysis_failed' in str(e.value)
+
+
+@pytest.mark.anyio
+async def test_progressive_workflow_locates_local_loss(recording):
+    import duckdb
+    # Synthetic lap 2 loses exactly two seconds between 40 and 60 metres.
+    with duckdb.connect(str(recording)) as connection:
+        connection.execute('UPDATE "Lap Dist" SET value=CASE WHEN rowid<140 THEN (rowid-100) WHEN rowid<180 THEN 40+(rowid-140)*0.5 ELSE 60+(rowid-180) END WHERE rowid>=100 AND rowid<220')
+        connection.execute('UPDATE "Ground Speed" SET value=CASE WHEN rowid>=140 AND rowid<180 THEN 18 ELSE 36 END WHERE rowid>=100 AND rowid<220')
+    async with http_server(recording) as url:
+        async with streamable_http_client(url) as (read,write,_):
+            async with ClientSession(read,write) as client:
+                await client.initialize()
+                async def call(name,**arguments):
+                    result=await client.call_tool(name,arguments)
+                    assert not result.isError,result
+                    assert len(result.model_dump_json().encode())<300000
+                    return result.structuredContent
+                sessions=await call('list_sessions')
+                session_id=sessions['sessions'][0]['session_id']
+                info=await call('get_session_info',session_id=session_id)
+                assert info['number_of_laps']==2
+                listing=await call('list_laps',session_id=session_id)
+                candidates=sorted((lap for lap in listing['laps'] if lap['benchmark_candidate']),key=lambda lap:lap['lap_time_s'],reverse=True)
+                chosen=[lap['lap'] for lap in candidates]
+                assert chosen==[2,1]
+                for lap in chosen:
+                    await call('get_lap_summary',session_id=session_id,lap=lap)
+                coarse=await call('compare_laps',session_id=session_id,laps=chosen,channels=['speed'],resolution_m=20)
+                distances=coarse['distance_m']
+                delta=coarse['deltas'][0]['elapsed_delta_a_minus_b_s']
+                intervals=[(delta[i+1]-delta[i],distances[i],distances[i+1]) for i in range(len(distances)-1) if delta[i] is not None and delta[i+1] is not None]
+                loss,start,end=max(intervals)
+                assert (loss,start,end)==pytest.approx((2,40,60))
+                details=[]
+                for lap in chosen:
+                    details.append(await call('get_telemetry',session_id=session_id,lap=lap,channels=['speed'],start_distance_m=start-10,end_distance_m=end+10,resolution_m=1))
+                assert details[0]['distance_m']==details[1]['distance_m']==list(range(30,71))
+                assert all(detail['units']['speed']=='km/h' for detail in details)
+                durations=[detail['elapsed_s'][-1]-detail['elapsed_s'][0] for detail in details]
+                assert durations[0]-durations[1]==pytest.approx(2)

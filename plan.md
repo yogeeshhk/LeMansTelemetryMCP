@@ -69,6 +69,8 @@ For each small implementation step: make the change, run relevant tests/checks, 
 
 ### Progress log
 
+- Phase 4 complete: strengthened server instructions and all seven tool descriptions for discovery, both lap summaries, coarse comparison, local delta growth and bounded detail on both laps. Added `docs/progressive-querying.md` and a linked README workflow. Actual MCP synthetic regression locates a known 2 s loss at 40-60 m and confirms it with matching 30-70 m queries; `python -m pytest tests/test_phase3_mcp.py -q`: 5 passed, including stdio/HTTP protocol and error coverage. Markdown links/fences and staged whitespace checks passed. Future corner/braking tools remain gated by Phases 12/13. No public tunnel or actual ChatGPT behavior test was performed. Phase 5 is next; Milestone 1 remains open.
+
 - Phase 3 complete, step 3: registered all seven typed, read-only MCP tools with structured results, bounded worker execution and sanitized errors. Verified actual stdio and Streamable HTTP initialization/discovery/calls, schema validation, path rejection, query/envelope limits and Host validation. Final `python -m pytest -q`: 58 passed; `python -m build` and `pip check` passed; distribution contents checked (including shared test fixtures). All seven tools passed through the production stdio entry point against the supplied race; original SHA-256/size/mtime unchanged, largest tested MCP response 210510 bytes. Added `docs/core-tools.md` and updated README. Public ngrok/ChatGPT integration remains untested and belongs to Phase 9; Phase 4 is next, Milestone 1 remains open.
 - Phase 3, step 2 complete: implemented the direct seven-method API, bounded distance grids, continuous interpolation/discrete holds, time-weighted summaries and elapsed-time lap deltas with coarse control-onset differences. Fixed an integer-grid dtype defect exposed by tests. All 20 new service tests pass; the prior 32 tests passed in the combined run before that localized fix. Real recording: 201-point section query and 681-point lap comparison pass, reproducing the 1.5378 s reported lap 2/4 delta. MCP registration/integration is next; Phase 3 remains open.
 - Phase 3, step 1 complete: added bounded numeric signal reads, explicit clock-stride validation, discrete event handling and lap completion/partial-interval identification. `python -m pytest -q`: 32 passed. Read-only supplied-race smoke test reproduces four positive reported lap times, the zero-time completion, impact flag and incomplete tail. NumPy/MCP dependencies pinned; public tools and distance analysis remain in progress.
@@ -413,7 +415,8 @@ compare_corner / compare_braking_zones
 get_telemetry at high resolution
 ```
 
-This is important.
+The corner/braking comparison branch activates only after Phases 12/13 pass. For the current core, identify a bounded section using coarse elapsed-delta changes and control-point differences, then query that same section on both laps. See [the progressive workflow](docs/progressive-querying.md).
+
 The model should not normally request full-resolution data for an entire lap.
 Tool descriptions should explicitly encourage progressive investigation.
 
