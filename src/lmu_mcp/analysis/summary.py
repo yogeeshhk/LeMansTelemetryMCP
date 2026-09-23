@@ -80,7 +80,7 @@ def lap_summary(session, lap):
                 components[component]={'first':float(data[good][0]),'last':float(data[good][-1]),'min':float(data[good].min()),'max':float(data[good].max())}
         result['condition_context'][name]={'unit':source.unit,'components':components}
     result['warnings']=warnings
-    result['method']='Time-weighted on recorded clock intervals; controls use >=5% thresholds; brake applications must last >=0.15s. Gaps are excluded and coverage reported. Counts exclude an already-active initial state. Official validity remains unknown.'
+    result['method']='Time-weighted on recorded clock intervals; controls use >=5% thresholds; brake applications must last >=0.15s. Gaps are excluded and coverage reported. ABS/TC activation counts exclude an already-active initial state; brake applications can include a continuing initial application. Official validity remains unknown.'
     return result
 
 

@@ -1,6 +1,7 @@
 """Direct Python coaching API; database connections live for one request only."""
 from contextlib import contextmanager
 from datetime import datetime,timezone
+from decimal import Decimal
 from pathlib import Path
 import json
 import math
@@ -14,6 +15,7 @@ from .alignment import distance_path, make_grid, aligned
 
 
 def serializable(value):
+    if isinstance(value,Decimal): return serializable(float(value))
     if isinstance(value,np.ndarray): return serializable(value.tolist())
     if isinstance(value,np.generic): return serializable(value.item())
     if isinstance(value,float): return round(value,4) if math.isfinite(value) else None

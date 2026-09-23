@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import numpy as np
 from .database import InspectionError, SignalReader
 from .models import Source
+from .schema import numeric
 
 
 @dataclass
@@ -34,6 +35,7 @@ class Session:
             cols={c.name for c in table.columns}
             values=tuple(n for n in ('value','value1','value2','value3','value4') if n in cols)
             if values not in [('value',),('value1','value2','value3','value4')]: continue
+            if not all(numeric(c) for c in table.columns if c.name in values): continue
             if info['kind']=='event' and 'ts' not in cols: continue
             self.sources.setdefault(name,Source('main',name,values,'ts' if info['kind']=='event' else None,
                                                 info['kind'],info['unit'],info['frequency_hz']))

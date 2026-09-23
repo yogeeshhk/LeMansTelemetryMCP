@@ -1,1 +1,1 @@
-"""MCP tool definitions are added in Phase 3; database SQL stays in database.py."""
+"""Typed read-only MCP definitions backed by the direct Python service API."""

@@ -118,3 +118,23 @@ def test_all_api_reads_leave_database_unchanged(api,recording):
     api.get_lap_summary(recording.name,1)
     api.compare_laps(recording.name,[1,2],['speed'],20,80,10)
     assert hashlib.sha256(recording.read_bytes()).digest()==digest
+
+
+def test_wide_decimal_channel_statistics_are_json_compatible(tmp_path):
+    p=tmp_path/'wide.duckdb'
+    with duckdb.connect(str(p)) as c:
+        c.execute('CREATE TABLE telemetry(time DOUBLE,speed DECIMAL(8,2))')
+        c.execute('INSERT INTO telemetry VALUES (0,1.25),(1,3.75)')
+    service=TelemetryService(Repository(tmp_path))
+    rows=service.list_channels(p.name)['channels']
+    speed=next(row for row in rows if row['name']=='speed')
+    assert speed['extrema']=={'speed':{'min':1.25,'max':3.75}}
+    assert speed['unit'] is None
+    json.dumps(rows,allow_nan=False)
+
+
+def test_malformed_raw_signal_is_not_advertised(api,recording):
+    with duckdb.connect(str(recording)) as c:
+        c.execute('ALTER TABLE "Brake Pos" ALTER COLUMN value TYPE VARCHAR')
+    names=[r['name'] for r in api.list_channels(recording.name)['channels']]
+    assert 'brake' not in names and 'Brake Pos' not in names

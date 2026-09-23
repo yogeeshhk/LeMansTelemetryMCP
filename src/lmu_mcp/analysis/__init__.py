@@ -1,1 +1,1 @@
-"""Numerical analysis implementations are added in their planned phases."""
+"""Transport-independent lap and driving-summary calculations."""
