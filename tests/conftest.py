@@ -10,6 +10,7 @@ from lmu_mcp.telemetry import Session
 def recording(tmp_path):
     path=tmp_path/'race.duckdb'
     with duckdb.connect(str(path)) as c:
+        c.execute('BEGIN TRANSACTION')
         c.execute('CREATE TABLE channelsList(channelName VARCHAR,frequency INTEGER,unit VARCHAR)')
         c.execute('CREATE TABLE eventsList(eventName VARCHAR,unit VARCHAR)')
         c.execute('CREATE TABLE metadata(key VARCHAR,value VARCHAR)')
@@ -37,6 +38,7 @@ def recording(tmp_path):
         event('ABS',[(0,False),(3,True),(4,False)],typ='BOOLEAN')
         event('In Pits',[(0,0)],typ='INTEGER')
         event('Finish Status',[(0,0)],typ='INTEGER')
+        c.execute('COMMIT')
     return path
 
 
