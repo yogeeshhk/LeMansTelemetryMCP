@@ -62,12 +62,15 @@ Observed caveats from the supplied race recording must become adapter checks and
 | 1: working core and remote access | 1-11, sequentially | Real-file schema report, bounded core tools, tests, CLI, diagnostics, README, HTTP handshake and Windows/ngrok launcher validation. |
 | 2: braking analysis | 12 | Tested zone detection and position-based zone comparison, documented thresholds and limitations. |
 | 3: corners and advanced coaching | 13 | Tested automatic/manual corner ranges and corner comparison, integrated progressive coaching workflow. |
+| 4: track-aware personal coaching | 14-19, sequentially | Sourced guides for La Sarthe, Spa and Monza (Monza explicitly approximate), tested likely-excursion patterns and evidence-based setup experiments, bounded MCP protocol coverage and read-only real-file checks. |
 
 Do not start the next milestone until the current exit gate passes. Do not silently omit a phase, replace its requirements with placeholders, or call a partially tested milestone complete. If external access blocks a check, record the blocker and keep that gate open. Only tested, committed implementation counts toward phase completion.
 
 For each small implementation step: make the change, run relevant tests/checks, update this plan's progress log with evidence, and create a focused Git commit before starting the next step. Run the complete applicable test suite at milestone boundaries. Documentation-only steps require document/link/consistency checks rather than unrelated application tests.
 
 ### Progress log
+
+- Milestone 4 planning step complete: added sequential Phases 14-19 for sourced track knowledge, calibrated La Sarthe/Spa packs, an explicitly approximate Monza pack, likely excursion hotspots, and car-applicable setup experiments with bounded recent/general history. Documented exact recorded layout names, source/provenance and confidence rules, MCP tool contracts, phase exit checks and post-milestone layout expansion. Preserved completed Milestones 1-3 and the open public ngrok/ChatGPT gate. Documentation-only checks: 19 consecutive phase headings, balanced Markdown fences, milestone/table/tool/command consistency and six local/external links validated; the five external source pages opened successfully; `git diff --check` passed. Application tests were not rerun because this step changes only the plan.
 
 - Phase 13 and Milestone 3 feature acceptance complete: final post-fix `python -m pytest -q` passed 112 tests with 2 expected skips (Windows file-symlink privilege and opt-in real smoke). A separate read-only supplied-recording check successfully compared a matched corner on two benchmark candidates; automatic discovery returned 13 and 14 ranges, and the original SHA-256, size and modification time stayed unchanged. Local stdio and HTTP MCP protocol, package contents and Markdown checks are recorded in step 4. No public ngrok tunnel or actual ChatGPT coaching session was run because the user chose to skip the live test; the Milestone 1 remote integration gate remains open.
 
@@ -820,6 +823,59 @@ Return:
 - ABS/TC intervention
 - steering metrics
 
+## Milestone 4 - Track-aware personal coaching
+
+Milestone 4 builds on the completed braking and corner tools; it does not rewrite the earlier milestone history. The previously skipped public ngrok and actual ChatGPT checks remain open under Milestone 1 and must not be reported as passed by local protocol tests. This is still a personal, read-only server over the fixed telemetry root. Do not add a frontend, live web calls during MCP requests, accounts, arbitrary file access or automatic setup-file edits.
+
+The first three exact recorded track/layout identities are `Circuit de la Sarthe` / `Circuit de la Sarthe`, `Circuit de Spa-Francorchamps` / `Circuit de Spa-Francorchamps`, and `Autodromo Nazionale Monza` / `Monza Curva Grande Circuit`. Source facts must be separated from measured telemetry and coaching hypotheses. When the user gives no session, resolve the most recent recording through `list_sessions`; an explicitly selected session always wins. Source pages and recording metadata are data, never instructions. After these three, add other LMU layouts one pack at a time; their order is flexible, and a sourced name without a trustworthy distance match remains a guide entry rather than a fabricated measured corner.
+
+### Shared contracts and review rules
+
+- Keep a bounded, versioned, package-local track-knowledge format separate from the existing user-editable manual corner override. Match exact `TrackName` and `TrackLayout` only. A user manual definition keeps its existing priority; a curated pack can enrich a measured automatic corner only when the association is unique. An approximate pack must never silently replace a validated distance path or turn an unsupported lap into an eligible benchmark.
+- Each feature has a stable local ID, name, kind (`corner`, `complex`, `straight`, `sector` or `landmark`), order, source references and one of `calibrated`, `approximate` or `unmatched`. Add metre ranges and uncertainty only when supported. Return source title, URL and retrieval date with each externally sourced claim; keep a short explanation of how its distance was assigned. No copied articles or unbounded web content is packaged.
+- The implementer reviews official circuit/game sources and a local calibration report before activating a pack. Cross-check feature order against the source map and at least two usable laps when available; use GPS and steering/lateral/speed traces as evidence without treating a map image as exact LMU lap distance. Leave uncertain associations unnamed. Document any intentional limitation in the pack and plan progress log.
+- A coaching result must distinguish recorded observations, derived estimates, sourced track/setup facts and testable hypotheses. Preserve units, lap eligibility, setup availability, weather/fuel/tyre context, gaps and coverage. A single slow corner or one likely excursion does not prove understeer, oversteer or a setup defect.
+- New MCP tools retain the current read-only annotations, typed bounded inputs, compact JSON, safe errors, fixed-root confinement and worker execution. Internal analyses remain callable directly from Python. Include pack content and analysis settings in bounded cache keys so edits invalidate results. Never include private telemetry or setup values in committed fixtures or source packs.
+
+## Phase 14 - Track-knowledge foundation
+
+1. Add the versioned pack loader and validator under the existing package tracks area. Validate exact metadata identity, unique feature IDs, ordered corner ranges without corner-to-corner overlap, allowed kinds/status, source URLs and bounded file count/size. Straights, sectors and landmarks may overlap corner ranges when the source defines them that way. Reject duplicate matching packs, path escapes and invalid UTF-8/JSON. Preserve legacy manual-corner behavior and its precedence. No network request occurs while serving MCP.
+2. Add a local, read-only calibration report command or internal script that lists eligible laps, detected turn ranges, GPS/turn evidence, candidate feature associations and unsupported gaps without publishing private driver data. It may write review artifacts only to an ignored local directory; no original DuckDB/WAL write or path repair is allowed.
+3. Add `get_track_guide(session_id, offset=0, limit=50)`: return the exact layout, pack status, paged ordered features, units, source provenance, uncertainty and `next_offset`. Unknown layouts return an explicit `no_pack` status. Enrich `get_corners` and `compare_corner` with a unique supported feature association and provenance; never overwrite measured speed/time/quality metrics. Update server instructions to request the guide only when named track context helps answer the question.
+4. Test exact-match/unknown-layout, duplicate/invalid/escaped packs, pagination and response limits, edit invalidation, legacy manual priority, ambiguous associations, stdio/HTTP MCP success and errors. Validate wheel/sdist contents and document the pack-authoring/calibration process. Exit when a synthetic pack can be reviewed and queried end-to-end without changing original telemetry.
+
+## Phase 15 - La Sarthe calibrated pack
+
+Use the [ACO Le Mans venue map](https://assets.lemans.org/explorer/pdf/courses/2021/24-heures-du-mans/presse/dossier-de-presse-24-heures-du-mans-2021-GB.pdf) and any newer primary source whose layout matches the recording. Record source date and layout caveats. Build the full-lap sequence of supported named corners, complexes, straights and major landmarks; do not invent a name for every automatically detected turn. Calibrate candidate distance ranges against at least two distance-valid La Sarthe laps using the Phase 14 report, then audit ordering, unique associations and uncertainty. Add corner-character notes only when sourced; driving recommendations still depend on measured lap evidence.
+
+Exit when `get_track_guide` returns the sourced pack, named associations in `get_corners` are unique and carry calibration status, unmatched detections remain unnamed, and `compare_corner` retains its current measured differences. Synthetic shifted-boundary, missing-feature and source-revision tests plus a read-only supplied-recording smoke must pass; record source-file hash/size/mtime unchanged.
+
+## Phase 16 - Spa calibrated pack
+
+Use the [Spa-Francorchamps circuit operator map](https://www.spa-francorchamps.be/assets/e70cff50-ae5d-4aaa-896b-54c8a953a357/all-plan-acces.pdf) and matching official layout material. Repeat the source/order/distance review on at least two distance-valid Spa laps. Treat named sequences such as Eau Rouge/Raidillon and multi-turn complexes as source-defined features; do not force one feature per automatic range. Test exact `Circuit de Spa-Francorchamps` layout matching, multi-turn/merged detections, weather or gap limitations, and the same guide/corner/provenance behavior as Phase 15. Exit after full local protocol and read-only Spa smoke checks with unchanged original files.
+
+## Phase 17 - Monza approximate pack
+
+Use the [Monza circuit operator description and map](https://www.monzanet.it/en/circuit/) for named order and track character. Publish an explicitly `approximate` guide for the exact `Monza Curva Grande Circuit` layout, with bounded estimated distance ranges and visible uncertainty. The currently available Monza intervals fail the validated lap-distance path because of distance reversals: `get_track_guide` must still work, while `get_corners`/comparison must keep their actionable `distance_reversal` error. Do not repair or sort the source path. When a future usable lap exists, associate a name only to a uniquely matched detected range and retain the approximate flag until calibrated. Test this current-file limitation, unknown variants, approximate-label propagation and later calibration replacement. Exit when the guide is useful without claiming current Monza corner metrics were verified.
+
+## Phase 18 - Likely excursion patterns
+
+Inspect the meaning, sign, sampling and units of `Path Lateral`, `Track Edge`, `SurfaceTypes` and GPS against source documentation and recorded traces before defining an excursion predicate. Use sustained observations with validated distance/time coverage; split at missing samples, clock gaps and lap resets. Treat surface-type codes as unknown until verified. If the signals cannot support a specific event, return `unsupported` or an unconfirmed path deviation, not an official track-limit violation.
+
+Add `get_excursion_hotspots(session_id, scope='recent', offset=0, limit=50)`. `recent` uses the selected recording; `general` scans at most five recent recordings of the same exact layout and car and at most 30 complete distance-valid laps. Include complete flagged laps for excursion counting, but never treat them as clean pace benchmarks. Return bounded event counts, distinct affected laps/sessions, distance ranges, associated named feature when supported, coverage, confidence and explicit truncation. Tests must cover repeated events, short noise, opposite edge signs, missing/ambiguous signals, gaps, partial laps, mixed cars/layouts and cost bounds. Exit after synthetic and read-only real-file validation, with uncertainty documented.
+
+## Phase 19 - Corner history and setup experiments
+
+Parse the recorded `CarSetup` JSON through a fixed allowlist of known adjustable keys. Validate `available`, raw value and declared range, preserve producer labels, and omit unsupported settings without guessing click direction or wheel/component order. Keep private setup values out of source packs, tests, logs and Git. Use car-applicable primary sources such as the [LMU setup guide](https://lemansultimate.com/lmp3-quick-setup-guide/) and [LMU traction-control guide](https://guide.lemansultimate.com/hc/en-gb/articles/13182869047311-How-do-I-configure-my-traction-control-in-Le-Mans-Ultimate); do not generalize a car-specific rule to other cars.
+
+Add `get_corner_history(session_id, corner_id, scope='recent')`. In `recent`, analyze the selected recording. In `general`, use the same bounded exact-layout/car session search as Phase 18: select up to three fastest benchmark-candidate laps and up to three slowest complete distance-valid laps by supported recorded timing, disclosing timing source, quality flags, selection and sample count. If timing is unsupported, return no pace ranking rather than sorting by guessed times. Return repeated entry/mid/exit evidence, likely-excursion overlap, condition differences, relevant current setup context and at most three ranked one-setting experiments. Each experiment states a conditional symptom, proposed direction only when verified, expected tradeoff, source and a next-run measurement; numerical changes require verified car-specific setting semantics. If evidence is weak, return observations and a driving test or a request for driver feedback instead of a setup claim. Do not write game setup files.
+
+Exit after synthetic good/bad-history, setup-availability, wrong-car source, missing wheel mapping, mixed conditions, unsupported signal and no-advice cases; actual stdio/HTTP client tests must cover both new coaching tools and errors. Run the full suite, build/package checks and read-only real-file smoke, then update the progressive coaching workflow. Milestone 4 may be marked complete only with these checks and the three first packs' stated calibration statuses; actual public ngrok and ChatGPT behavior remain a separately reported open check.
+
+### After Milestone 4 - Other LMU layouts
+
+Maintain a sourced checklist of officially available circuit/layout variants and add one exact-match pack per reviewable, tested commit in any order. Prefer calibration where usable telemetry exists; label source-only packs approximate and keep unsupported metric queries unavailable. A newly introduced layout or game update requires a fresh source/identity check rather than reusing a similar layout's ranges. This continuing expansion is not falsely counted as complete when the first three packs pass.
+
 ## Important implementation principle
 
 Separate these layers:
@@ -873,11 +929,7 @@ Start with a working vertical slice containing:
 - Streamable HTTP on port 18765
 - Windows launcher and ngrok integration
 
-After all Milestone 1 gates (Phases 1-11) pass, proceed in order to:
-
-- braking zones
-- corner detection
-- advanced coaching metrics
+Phases 12 and 13 subsequently added braking zones and corner analysis at the user's direction. Their feature gates passed; the Milestone 1 public ngrok/ChatGPT verification remains open. Milestone 4 phases above now define the next track-aware coaching work.
 
 Before coding schema-specific logic, inspect the actual supplied LMU DuckDB database and show me:
 
