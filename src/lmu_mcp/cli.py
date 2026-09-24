@@ -9,6 +9,7 @@ import uvicorn
 
 from .config import TELEMETRY_ROOT
 from .database import InspectionError, Repository
+from .diagnostics import diagnose, format_diagnostics
 from .private_path import load_or_create, rotate
 from .server import create_server
 
@@ -55,12 +56,16 @@ def main(argv=None):
     commands = parser.add_subparsers(dest='command',required=True)
     inspection = commands.add_parser('inspect',help='Inspect one recording from the fixed telemetry directory.')
     inspection.add_argument('session_id')
+    diagnosis = commands.add_parser('diagnose',help='Report read-only schema and lap support for one recording.')
+    diagnosis.add_argument('session_id')
     commands.add_parser('serve',help='Serve private Streamable HTTP on 127.0.0.1:18765.')
     commands.add_parser('rotate-secret',help='Rotate the private MCP URL path; restart the server afterward.')
     args = parser.parse_args(argv)
     try:
         if args.command == 'inspect':
             inspect(args.session_id)
+        elif args.command == 'diagnose':
+            print(format_diagnostics(diagnose(args.session_id)))
         elif args.command == 'serve':
             serve_http()
         elif args.command == 'rotate-secret':

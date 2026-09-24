@@ -39,6 +39,14 @@ except InspectionError as error:
     print(error.code, str(error))
 ```
 
+For a compact local recording check, run:
+
+```powershell
+.\.venv\Scripts\lmu-mcp.exe diagnose "Circuit de la Sarthe_R_2026-09-22T17_46_50Z.duckdb"
+```
+
+`diagnose` reports read-only database/schema availability, key channel mappings, detected lap intervals, benchmark candidates and the highest verified catalog sample rate. Missing or ambiguous channels and unavailable lap analysis are warnings; usable laps are **not** official validity decisions. It accepts only a relative session ID from the fixed telemetry directory and prints no driver metadata.
+
 Session IDs are relative to the fixed directory. A `discovered` status does not guarantee readability. Close the recording/game cleanly before retrying a locked or WAL-dependent file. The inspector never repairs or writes to original recordings. It describes views without executing them and retains unknown or ambiguous mappings explicitly. For time alignment and lap metrics, use `lmu_mcp.service.TelemetryService` or the MCP tools described in [core-tools.md](docs/core-tools.md).
 
 Local reports may contain numeric sample rows. Keep those reports in ignored `.runtime/` and out of Git. See [the schema findings](docs/schema-inspection.md) for producer units and timing caveats.
