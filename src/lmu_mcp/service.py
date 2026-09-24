@@ -13,6 +13,8 @@ from .telemetry import Session, require
 from .analysis.laps import identify_laps, select_lap
 from .analysis.summary import lap_summary, speed_factor, control_transitions, match_onsets
 from .analysis.braking import BrakingSettings, build_braking_zones, match_positions
+from .analysis.corner_metrics import automatic_ranges, corner_metrics
+from .manual_corners import load_manual_corners
 from dataclasses import asdict
 from .alignment import distance_path, make_grid, aligned, validate_grid_request
 
@@ -196,6 +198,98 @@ class TelemetryService:
                            'excluded_intervals_b':result_b['excluded_intervals'],
                            'warnings_a':result_a['warnings'],'warnings_b':result_b['warnings'],
                            'note':'Matches maximize count then minimize start-position distance without crossing zone order. A-minus-B is first lap minus second in stated units. Unmatched or partial zones are not silently paired; measured differences do not establish a driving cause.'})
+
+    def _corners(self, session, lap):
+        manual=load_manual_corners(session.metadata.get('TrackName'),
+                                   session.metadata.get('TrackLayout'))
+        definition_key=json.dumps(manual,sort_keys=True) if manual is not None else None
+        session_id=session.inspection.session_id
+        revision=session.cache_revision
+        budget=(config.MAX_SOURCE_SAMPLES,config.MAX_TOTAL_SOURCE_SAMPLES)
+        cached=self.cache.get(session_id,revision,'corners',lap['lap'],definition_key,budget)
+        if cached is None:
+            path=self._path(session,lap)
+            if manual is not None:
+                ranges=manual
+                spacing=None
+                source='manual'
+            else:
+                ranges,spacing=automatic_ranges(session,lap,path)
+                source='automatic'
+            rows=[corner_metrics(session,lap,path,row) for row in ranges]
+            cached={'corners':rows,'definition_source':source,
+                    'automatic_resolution_m':spacing,
+                    'method':'Manual track/layout definitions override automatic detection. Automatic ranges require sustained steering percent and lateral G on a validated distance grid; minimum speed estimates the apex. Section timing and controls are approximate; null or quality flags mean unsupported coverage.'}
+            self.cache.put(session_id,revision,'corners',cached,lap['lap'],definition_key,budget)
+        return cached
+
+    def get_corners(self, session_id, lap, offset=0, limit=50):
+        require(type(offset) is int and offset>=0 and type(limit) is int and 1<=limit<=50,
+                'invalid_page','Use offset >= 0 and limit from 1 to 50 for corners.')
+        with self.session(session_id) as session:
+            selected=self._select_lap(session,lap)
+            result=self._corners(session,selected)
+            rows=result['corners']
+            return output({'session_id':session_id,'lap':lap,'lap_quality':selected,
+                           'corners':rows[offset:offset+limit],
+                           'total':len(rows),'next_offset':offset+limit if offset+limit<len(rows) else None,
+                           'definition_source':result['definition_source'],
+                           'automatic_resolution_m':result['automatic_resolution_m'],
+                           'units':{'distance':'m','speed':'km/h','time':'s','steering':'%'},
+                           'method':result['method']})
+
+    def compare_corner(self, session_id, corner_id, laps):
+        require(type(corner_id) is int and 1<=corner_id<=1000,'invalid_corner',
+                'Choose a positive corner_id from get_corners on the first lap.')
+        require(isinstance(laps,list) and all(type(n) is int and n>0 for n in laps)
+                and 2<=len(laps)<=5 and len(set(laps))==len(laps),
+                'invalid_laps','Compare 2 to 5 distinct positive benchmark-candidate lap IDs.')
+        with self.session(session_id) as session:
+            selected=[self._select_lap(session,n) for n in laps]
+            require(all(lap['benchmark_candidate'] for lap in selected),
+                    'ineligible_lap','Choose benchmark candidates from list_laps for corner comparison.')
+            reference_result=self._corners(session,selected[0])
+            reference=next((row for row in reference_result['corners'] if row['corner_id']==corner_id),None)
+            require(reference is not None,'unknown_corner',
+                    'Corner ID is not present on the first lap; call get_corners for that lap.')
+            compared=[]
+            unmatched=[]
+            keys=('brake_point_m','turn_in_position_m','apex_distance_m',
+                  'minimum_speed_position_m','minimum_speed_kph',
+                  'throttle_pickup_position_m','full_throttle_position_m',
+                  'entry_speed_kph','exit_speed_kph','section_time_s',
+                  'abs_active_time_s','tc_active_time_s',
+                  'maximum_absolute_steering_pct','mean_absolute_steering_pct')
+            for lap in selected[1:]:
+                result=self._corners(session,lap)
+                if reference_result['definition_source']=='manual':
+                    candidate=next((row for row in result['corners'] if row['corner_id']==corner_id),None)
+                    match_method='manual_id'
+                else:
+                    choices=[row for row in result['corners']
+                             if abs(row['start_distance_m']-reference['start_distance_m'])<=100]
+                    choices.sort(key=lambda row:(abs(row['start_distance_m']-reference['start_distance_m']),
+                                                 row['start_distance_m']))
+                    candidate=choices[0] if choices else None
+                    match_method='nearest_start_within_100_m'
+                if candidate is None:
+                    unmatched.append(lap['lap'])
+                    continue
+                differences={key:(candidate[key]-reference[key]
+                                  if candidate.get(key) is not None and reference.get(key) is not None else None)
+                             for key in keys}
+                if candidate['quality_flags'] or reference['quality_flags']:
+                    differences={key:None for key in keys}
+                compared.append({'lap':lap['lap'],'corner':candidate,
+                                 'match_method':match_method,
+                                 'start_match_distance_m':abs(candidate['start_distance_m']-reference['start_distance_m']),
+                                 'lap_minus_reference':differences})
+            return output({'session_id':session_id,'corner_id':corner_id,
+                           'reference_lap':laps[0],'reference_corner':reference,
+                           'comparisons':compared,'unmatched_laps':unmatched,
+                           'definition_source':reference_result['definition_source'],
+                           'units':{'distance':'m','speed':'km/h','time':'s','steering':'%'},
+                           'note':'Automatic corner IDs are per-lap ordinals; later laps match the first lap by approximate start position within 100 m. Manual IDs match exact track/layout definitions. Deltas are lap minus reference in each field unit; quality flags suppress unsupported deltas. Section time is reconstructed, not official. Differences alone do not establish driving cause.'})
 
     def list_sessions(self, search='', offset=0, limit=20):
         require(type(offset) is int and offset>=0 and type(limit) is int and 1<=limit<=100,'invalid_page','Use a nonnegative offset and limit from 1 to 100.')

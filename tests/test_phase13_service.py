@@ -1,0 +1,82 @@
+import json
+
+import duckdb
+import pytest
+
+from lmu_mcp.database import Repository, InspectionError
+from lmu_mcp.manual_corners import load_manual_corners
+from lmu_mcp.service import TelemetryService
+
+
+def add_corners(recording):
+    with duckdb.connect(str(recording)) as connection:
+        connection.execute("INSERT INTO channelsList VALUES ('G Force Lat',10,'G')")
+        connection.execute('CREATE TABLE "G Force Lat"(value DOUBLE)')
+        connection.execute('INSERT INTO "G Force Lat" SELECT CASE WHEN ((rowid / 10.0 < 10 AND rowid / 10.0 BETWEEN 3 AND 6) OR (rowid / 10.0 >= 10 AND (rowid / 10.0 - 10) / 1.2 BETWEEN 3 AND 6)) THEN 0.5 ELSE 0 END FROM "GPS Time"')
+        connection.execute('UPDATE "Steering Pos" SET value=CASE WHEN ((rowid / 10.0 < 10 AND rowid / 10.0 BETWEEN 3 AND 6) OR (rowid / 10.0 >= 10 AND (rowid / 10.0 - 10) / 1.2 BETWEEN 3 AND 6)) THEN 20 ELSE 0 END')
+        connection.execute('UPDATE "Ground Speed" SET value=CASE WHEN rowid / 10.0 < 10 THEN 50 - 20 * greatest(0, 1 - abs(rowid / 10.0 - 4.5) / 1.5) ELSE 48 - 16 * greatest(0, 1 - abs((rowid / 10.0 - 10) / 1.2 - 4.5) / 1.5) END')
+        connection.execute('UPDATE "Throttle Pos" SET value=CASE WHEN rowid / 5.0 < 10 THEN CASE WHEN rowid / 5.0 < 5 THEN 0 ELSE 100 END ELSE CASE WHEN (rowid / 5.0 - 10) / 1.2 < 5 THEN 0 ELSE 100 END END')
+
+
+def service(recording):
+    return TelemetryService(Repository(recording.parent))
+
+
+def test_automatic_corner_metrics_and_comparison(recording):
+    add_corners(recording)
+    api=service(recording)
+    first=api.get_corners(recording.name,1)
+    assert first['definition_source']=='automatic'
+    assert first['total']==1
+    corner=first['corners'][0]
+    assert corner['corner_id']==1
+    assert corner['start_distance_m'] <= 30 < corner['end_distance_m']
+    assert 40 <= corner['minimum_speed_position_m'] <= 50
+    assert 30 <= corner['minimum_speed_kph'] <= 32
+    assert corner['entry_speed_kph'] > corner['minimum_speed_kph']
+    assert corner['exit_speed_kph'] > corner['minimum_speed_kph']
+    assert corner['brake_point_m'] is not None
+    assert corner['turn_in_position_m'] is not None
+    assert corner['throttle_pickup_position_m'] is not None
+    assert corner['full_throttle_position_m'] is not None
+    assert corner['section_time_s'] > 0
+    assert corner['maximum_absolute_steering_pct']==20
+    assert corner['quality_flags']==[]
+    assert api.get_corners(recording.name,1,offset=1)['corners']==[]
+    comparison=api.compare_corner(recording.name,1,[1,2])
+    assert comparison['unmatched_laps']==[]
+    assert comparison['comparisons'][0]['match_method']=='nearest_start_within_100_m'
+    assert 1 <= comparison['comparisons'][0]['lap_minus_reference']['minimum_speed_kph'] <= 3
+    assert comparison['comparisons'][0]['lap_minus_reference']['section_time_s'] > 0
+
+
+def test_manual_override_and_outside_coverage(recording,tmp_path,monkeypatch):
+    directory=tmp_path/'definitions'
+    directory.mkdir()
+    definition={'track':'Synthetic','layout':'Test','corners':[
+        {'corner_id':7,'name':'Hairpin','start_distance_m':20,'apex_distance_m':45,'end_distance_m':70},
+        {'corner_id':9,'name':'Beyond lap','start_distance_m':110,'end_distance_m':130}]}
+    (directory/'synthetic.json').write_text(json.dumps(definition),encoding='utf-8')
+    monkeypatch.setattr('lmu_mcp.service.load_manual_corners',lambda track,layout:load_manual_corners(track,layout,directory))
+    api=service(recording)
+    result=api.get_corners(recording.name,1)
+    assert result['definition_source']=='manual'
+    assert result['total']==2
+    assert result['corners'][0]['name']=='Hairpin'
+    assert result['corners'][0]['apex_distance_m']==45
+    assert result['corners'][1]['quality_flags']==['outside_lap_distance_coverage']
+    assert result['corners'][1]['minimum_speed_kph'] is None
+    assert api.compare_corner(recording.name,7,[1,2])['comparisons'][0]['match_method']=='manual_id'
+    definition['corners'][0]['name']='Renamed'
+    (directory/'synthetic.json').write_text(json.dumps(definition),encoding='utf-8')
+    assert api.get_corners(recording.name,1)['corners'][0]['name']=='Renamed'
+
+
+def test_corner_request_errors(recording):
+    api=service(recording)
+    with pytest.raises(InspectionError,match='lateral_acceleration'):
+        api.get_corners(recording.name,1)
+    with pytest.raises(InspectionError,match='offset'):
+        api.get_corners(recording.name,1,offset=-1)
+    with pytest.raises(InspectionError,match='distinct'):
+        api.compare_corner(recording.name,1,[1,1])
