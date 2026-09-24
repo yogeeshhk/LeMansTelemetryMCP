@@ -14,13 +14,53 @@ from .analysis.summary import lap_summary, speed_factor, control_transitions, ma
 from .alignment import distance_path, make_grid, aligned, validate_grid_request
 
 
-def serializable(value):
-    if isinstance(value,Decimal): return serializable(float(value))
-    if isinstance(value,np.ndarray): return serializable(value.tolist())
-    if isinstance(value,np.generic): return serializable(value.item())
-    if isinstance(value,float): return round(value,4) if math.isfinite(value) else None
-    if isinstance(value,dict): return {str(k):serializable(v) for k,v in value.items()}
-    if isinstance(value,(list,tuple)): return [serializable(v) for v in value]
+def _distance_digits(resolution):
+    if not isinstance(resolution, (int, float)) or not math.isfinite(resolution):
+        return 1
+    return min(4, max(1, -Decimal(str(resolution)).as_tuple().exponent))
+
+
+def serializable(value, field=None, unit=None, distance_digits=1):
+    """Round only the wire representation; analysis arrays retain full precision."""
+    if isinstance(value, Decimal):
+        return serializable(float(value), field, unit, distance_digits)
+    if isinstance(value, np.ndarray):
+        return serializable(value.tolist(), field, unit, distance_digits)
+    if isinstance(value, np.generic):
+        return serializable(value.item(), field, unit, distance_digits)
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            return None
+        if field in ('resolution_m', 'start_distance_m', 'end_distance_m'):
+            digits = 4
+        elif (field and field.endswith('_kph')) or (unit == 'km/h' and field not in ('frequency_hz',)):
+            digits = 1
+        elif (field and field.endswith('_s')) or unit == 's':
+            digits = 3
+        elif (field and field.endswith('_m')) or unit == 'm':
+            digits = distance_digits
+        elif unit == '%':
+            digits = 3
+        elif field and field.endswith('_pct'):
+            digits = 1
+        else:
+            digits = 4
+        rounded = round(value, digits)
+        return 0.0 if rounded == 0 else rounded
+    if isinstance(value, dict):
+        own_unit = value.get('unit', unit)
+        own_digits = _distance_digits(value['resolution_m']) if 'resolution_m' in value else distance_digits
+        units = value.get('units', {})
+        result = {}
+        for key, item in value.items():
+            if key == 'channels' and isinstance(item, dict) and isinstance(units, dict):
+                result[key] = {name: serializable(array, name, units.get(name), own_digits)
+                               for name, array in item.items()}
+            else:
+                result[str(key)] = serializable(item, key, own_unit, own_digits)
+        return result
+    if isinstance(value, (list, tuple)):
+        return [serializable(item, field, unit, distance_digits) for item in value]
     return value
 
 

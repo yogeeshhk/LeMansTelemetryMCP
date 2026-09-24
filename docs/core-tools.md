@@ -65,6 +65,10 @@ Positive means A is slower at that distance. The first requested lap is A for ea
 
 Basic brake/throttle onsets are first recorded samples reaching 5% after being below it. Nearby onsets are greedily matched one-to-one within 100 m, with unmatched counts and truncation indicators. Positive onset-distance difference means A applies the control later along the track. These are coarse evidence for investigation, not named-corner matches or proof of a driving mistake. Fuel, tyres, traffic and weather can differ within the same recording.
 
+## Wire representation and display precision
+
+Telemetry uses column arrays sharing one `distance_m` grid. Units are supplied per channel, alongside interpolation and timing notes; summary tools return scalar metrics and condition context. Non-finite samples serialize as null, never zero. Output rounds verified km/h speeds to 0.1 km/h, percentage-valued control samples to 0.001%, seconds to 0.001 s and distance to about 0.1 m. When `resolution_m` has finer decimal precision, distance arrays retain enough decimal places (up to four) to distinguish grid points. Other numeric channels retain four decimal places unless a verified unit gives a more specific rule. These rules apply only during serialization; calculations use unrounded arrays. Display rounding can hide differences smaller than the stated precision.
+
 ## Bounds and errors
 
 - Recursive discovery examines at most 20,000 directory entries; exceeding that limit raises `discovery_limit` without returning a partial list. Pagination: 1-100 session/lap records per page.
