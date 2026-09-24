@@ -24,6 +24,9 @@ dev = ["pytest==9.1.1", "build==1.6.1"]
 [tool.setuptools]
 include-package-data = false
 
+[tool.setuptools.package-data]
+lmu_mcp = ["tracks/*.json", "tracks/*.md"]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["lmu_mcp", "lmu_mcp.*"]
