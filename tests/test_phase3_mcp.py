@@ -50,7 +50,7 @@ async def check_protocol(read,write):
         initialized=await client.initialize()
         assert initialized.serverInfo.name=='Le Mans Ultimate Telemetry'
         tools=await client.list_tools()
-        expected={'list_sessions','get_session_info','list_channels','list_laps','get_lap_summary','get_telemetry','compare_laps','get_braking_zones','compare_braking_zones','get_corners','compare_corner','get_track_guide'}
+        expected={'list_sessions','get_session_info','list_channels','list_laps','get_lap_summary','get_telemetry','compare_laps','get_braking_zones','compare_braking_zones','get_corners','compare_corner','get_track_guide','get_excursion_hotspots'}
         assert {t.name for t in tools.tools}==expected
         for tool in tools.tools:
             assert tool.annotations.readOnlyHint is True
