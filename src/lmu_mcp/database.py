@@ -133,7 +133,9 @@ class Repository:
         if Path(str(p)+".wal").exists():
             raise InspectionError("wal_present", "Recording has a WAL file. Close the game cleanly before inspection; this server will not recover or modify it.")
         try:
-            c=duckdb.connect(str(p),read_only=True,config={"enable_external_access":"false","threads":"2","memory_limit":"512MB"})
+            c=duckdb.connect(str(p),read_only=True,config={"enable_external_access":"false","autoload_known_extensions":"false",
+                                                       "autoinstall_known_extensions":"false","allow_unsigned_extensions":"false",
+                                                       "threads":"2","memory_limit":"512MB"})
         except duckdb.Error as exc:
             raise InspectionError("database_unavailable", "Database could not be opened read-only. It may be locked, incomplete or incompatible; close the recording and retry.") from exc
         try:
