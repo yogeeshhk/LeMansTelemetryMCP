@@ -36,7 +36,18 @@
       "start_distance_m": 0,
       "end_distance_m": 600,
       "uncertainty_m": 100,
-      "distance_method": "Broad lap-start interval; 2026 ACO sequence, not an exact surveyed LMU boundary."
+      "distance_method": "Broad lap-start interval; 2026 ACO sequence, not an exact surveyed LMU boundary.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Use the pit straight to finish the Ford Chicanes exit, check mirrors and settle the car for Dunlop Curve. Choose a repeatable visible reference before the braking and direction changes ahead. A distance range in this guide locates the feature; it is not a prescribed braking point.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "dunlop-curve",
@@ -47,7 +58,18 @@
       "source_ids": [
         "aco-2026-lap"
       ],
-      "character": "Fast right-hander before the Dunlop Chicane."
+      "character": "Fast right-hander before the Dunlop Chicane.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Build the right-hand load smoothly and place the car for the Dunlop Chicane rather than treating this bend in isolation. Leave margin for traffic and changing grip. Judge the approach by whether the car arrives stable for the first chicane input.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "dunlop-chicane",
@@ -62,7 +84,18 @@
       "end_distance_m": 950,
       "uncertainty_m": 40,
       "distance_method": "Two complete LMU laps show turns near 795-942 m; covers the complex, not separate apexes.",
-      "character": "Technical kerb-lined chicane."
+      "character": "Technical kerb-lined chicane.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Complete the main deceleration with the car stable, release the brake as steering builds and link the direction changes without using all the road after the first apex. Prioritise the final exit towards the Forest Esses. Test kerb use progressively because the guide does not establish current kerb grip for every car.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "forest-esses",
@@ -73,7 +106,18 @@
       "source_ids": [
         "aco-2026-lap"
       ],
-      "character": "Fast left-right sequence before Tertre Rouge."
+      "character": "Fast left-right sequence before Tertre Rouge.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Treat the esses as a positioning sequence for Tertre Rouge. Use measured steering changes, avoid an exit that leaves a late correction, and make the final placement early enough to prepare the right-hander. A tidy rhythm here creates a calmer Tertre Rouge entry.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "tertre-rouge",
@@ -88,7 +132,18 @@
       "end_distance_m": 1660,
       "uncertainty_m": 45,
       "distance_method": "Three complete LMU laps detect the turn near 1520-1645 m; ACO sequence places it before Mulsanne Straight.",
-      "character": "Right-hander whose exit leads onto Mulsanne Straight."
+      "character": "Right-hander whose exit leads onto Mulsanne Straight.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Approach with enough margin to finish rotation before asking for full acceleration. The following straight makes exit quality valuable: an early apex or excess entry speed can delay throttle for a long time. Open the wheel as the road allows and build commitment only from repeatable exits.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "mulsanne-straight",
@@ -104,7 +159,20 @@
       "start_distance_m": 1650,
       "end_distance_m": 7670,
       "uncertainty_m": 100,
-      "distance_method": "Broad corridor from Tertre Rouge to the ACO 2025 i2 marker; includes both chicanes."
+      "distance_method": "Broad corridor from Tertre Rouge to the ACO 2025 i2 marker; includes both chicanes.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Unwind the Tertre Rouge exit and monitor closing speed, tow and traffic before each chicane approach. Decide on a passing line early and finish lateral moves before heavy braking. A clear-air braking reference needs extra margin when a tow increases arrival speed.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap",
+            "aco-2021-map",
+            "aco-2025-loops"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "daytona-chicane",
@@ -120,7 +188,19 @@
       "end_distance_m": 4200,
       "uncertainty_m": 65,
       "distance_method": "Three complete LMU laps show a chicane turn near 4020-4162 m; 2026 ACO names the first chicane Daytona.",
-      "character": "First chicane on Mulsanne Straight."
+      "character": "First chicane on Mulsanne Straight.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Brake in a straight line, release progressively into the first change of direction and preserve space for the second. Avoid winning the first apex at the cost of a poor final exit. Use kerbs only to the extent the current car remains settled and the current rules permit.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap",
+            "aco-2021-map"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "michelin-chicane",
@@ -136,7 +216,19 @@
       "end_distance_m": 6160,
       "uncertainty_m": 55,
       "distance_method": "Three complete LMU laps show turns near 5986-6144 m; 2026 ACO names the second chicane Michelin.",
-      "character": "Second chicane on Mulsanne Straight."
+      "character": "Second chicane on Mulsanne Straight.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Use the same repeatable sequence as the first straight chicane: stable braking, a controlled first apex and an exit-led final change of direction. Compare the two chicanes as separate events because wind, tow and arrival speed can differ. Let throttle follow the opening steering rather than forcing it between corrections.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap",
+            "aco-2021-map"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "mulsanne-corner",
@@ -152,7 +244,19 @@
       "end_distance_m": 7800,
       "uncertainty_m": 35,
       "distance_method": "Three complete LMU laps detect 7696-7789 m; ACO 2025 i2 loop lies just before this end-of-straight turn.",
-      "character": "Slow right-hander at the end of Mulsanne Straight."
+      "character": "Slow right-hander at the end of Mulsanne Straight.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Prepare for the slow right with the car straight and release brake pressure as you ask it to rotate. Avoid turning so early that the exit narrows while steering demand is still high. Build throttle progressively onto the next acceleration section and leave room for traffic on corner exit.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap",
+            "aco-2025-loops"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "indianapolis",
@@ -167,7 +271,18 @@
       "end_distance_m": 9910,
       "uncertainty_m": 45,
       "distance_method": "Three complete LMU laps detect 9782-9882 m between Mulsanne and Arnage in the ACO sequence.",
-      "character": "Fast right kink followed by a banked left turn."
+      "character": "Fast right kink followed by a banked left turn.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Treat the fast right approach and banked left as one connected sequence. Settle the car before the left, look through the longer arc and retain enough control to position for Arnage. Extra entry speed is useful only if it does not create a correction or delayed exit.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "arnage",
@@ -182,7 +297,18 @@
       "end_distance_m": 10215,
       "uncertainty_m": 35,
       "distance_method": "Three complete LMU laps detect 10121-10202 m after Indianapolis in the ACO sequence.",
-      "character": "Slow right-hander after Indianapolis."
+      "character": "Slow right-hander after Indianapolis.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Do most deceleration before the slow right, release into rotation and be patient until the exit opens. Because the corner is tight, an early throttle application can add steering or traction demand without improving the exit. Aim for a clean launch towards the Porsche Curves.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "porsche-curves",
@@ -198,7 +324,19 @@
       "end_distance_m": 12505,
       "uncertainty_m": 120,
       "distance_method": "ACO 2025 Porsche In/Out loop markers bound the complex; LMU turn detections vary, so no single-turn name.",
-      "character": "Fast right-left-right sequence."
+      "character": "Fast right-left-right sequence.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Build the sequence as a rhythm exercise, looking through each change of direction and keeping steering corrections small. Enter at a speed that leaves room to link the later bends and progressively open the wheel. Traffic, tyre state and grip can change the safe commitment; the pack supplies no flat-out target.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap",
+            "aco-2025-loops"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "karting-esses",
@@ -209,7 +347,18 @@
       "source_ids": [
         "aco-2026-lap"
       ],
-      "character": "Fast right-left sequence after the Porsche Curves."
+      "character": "Fast right-left sequence after the Porsche Curves.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Continue the rhythm from the Porsche Curves with early vision and controlled weight transfer. Avoid using all the road after the first direction change if it compromises the next. Prioritise a settled exit that prepares the braking approach to the Ford Chicanes.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "ford-chicanes",
@@ -225,7 +374,19 @@
       "end_distance_m": 13485,
       "uncertainty_m": 65,
       "distance_method": "ACO 2025 Ford In/Out and three LMU lap detections place the closing chicanes here; individual turns vary.",
-      "character": "Two left-right chicanes near the lap end."
+      "character": "Two left-right chicanes near the lap end.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Brake with the car stable and organise both chicanes as one closing sequence. Keep the first exit compact enough to prepare the next direction change, then delay full throttle until the final exit opens. Over-attacking an early kerb can cost the entire run onto the pit straight.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap",
+            "aco-2025-loops"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
     },
     {
       "feature_id": "motul-turn",
@@ -236,7 +397,83 @@
       "source_ids": [
         "aco-2026-lap"
       ],
-      "character": "Final named turn before the pit straight in the 2026 ACO guide."
+      "character": "Final named turn before the pit straight in the 2026 ACO guide.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Finish the final turn with the wheel opening and use the pit-straight exit as the measure of the whole Ford sequence. Keep awareness of pit entry, nearby cars and any race-specific line constraints. A clean repeatable departure matters more than an isolated minimum-speed number.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "aco-2026-lap"
+          ],
+          "applicability": "General technique for the exact LMU La Sarthe layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    }
+  ],
+  "coaching": [
+    {
+      "topic": "overview",
+      "text": "The ACO guide orders the lap from the Dunlop section through Tertre Rouge, the two Mulsanne-straight chicanes, Mulsanne Corner, Indianapolis, Arnage, the Porsche and Karting sequences, and the Ford Chicanes. Learn those linked sections in order; the long acceleration zones make the preceding exit important.",
+      "evidence": "sourced",
+      "source_ids": [
+        "aco-2026-lap"
+      ],
+      "applicability": "Real-circuit sequence applied to the exact matching LMU layout; the source supplies no current car-specific gears, speeds or braking markers."
+    },
+    {
+      "topic": "overview",
+      "text": "Pack distances locate features and are not braking targets. Four single corners have stable measured associations, while complexes remain contextual or unmatched where one-to-one evidence is unavailable. Use each status and uncertainty label; do not convert an approximate range into a claimed apex or racing line.",
+      "evidence": "hypothesis",
+      "source_ids": [
+        "aco-2026-lap",
+        "aco-2025-loops"
+      ],
+      "applicability": "Calibration limitations for the reviewed LMU layout and recordings; another game revision, layout or car requires fresh checks."
+    },
+    {
+      "topic": "setup",
+      "text": "Begin from the appropriate in-game baseline and evaluate the lap as a compromise: braking stability for the chicanes and slow corners, predictable direction changes through the Porsche section, traction from slow exits, and acceptable drag on the long acceleration zones. Change one setting at a time and retain it only when repeated comparable laps improve the intended symptom without harming the rest of the lap.",
+      "evidence": "general_technique",
+      "source_ids": [],
+      "applicability": "General setup-testing process only. No click, pressure, ride-height, wing or differential value is prescribed for an unspecified car."
+    },
+    {
+      "topic": "setup",
+      "text": "Use driver feedback to separate entry rotation, mid-corner balance, traction and kerb response before changing setup. A slow corner or large steering input alone does not prove a setup fault. Confirm the exact car and recorded available controls, then require a car-applicable source before giving a numerical direction.",
+      "evidence": "general_technique",
+      "source_ids": [],
+      "applicability": "General diagnostic discipline for the matching LMU layout; personal telemetry and exact car applicability are required for setup advice."
+    },
+    {
+      "topic": "race",
+      "text": "Plan passes around closing speed and the next braking zone. The long Mulsanne acceleration sections can create large tow differences, while the chicanes and slow corners require the move to be established before turn-in. Leave an escape margin and avoid assuming a clear-air braking reference will survive traffic.",
+      "evidence": "general_technique",
+      "source_ids": [
+        "aco-2026-lap"
+      ],
+      "applicability": "General racecraft context for the exact layout; check current LMU rules, class speed differences, weather and the cars involved."
+    },
+    {
+      "topic": "race",
+      "text": "For a stint, value repeatable exits and small steering corrections through the fast linked sections. Review tyre condition, fuel, weather and traffic over several comparable laps before attributing pace drift. This guide contains no pit window, tyre-life model or fuel target.",
+      "evidence": "general_technique",
+      "source_ids": [],
+      "applicability": "General stint discipline; strategy requires the actual session format, rules and recorded car state."
+    },
+    {
+      "topic": "practice",
+      "text": "First establish braking and exits at the two Mulsanne chicanes, Mulsanne Corner, Arnage and the Ford Chicanes. Next link Dunlop through Tertre Rouge and Indianapolis through Arnage. Finally build the Porsche and Karting sequences gradually. Work on one sequence at a time and keep a conservative reference lap.",
+      "evidence": "general_technique",
+      "source_ids": [],
+      "applicability": "General practice progression for the exact LMU layout; adapt the order when a specific corner or condition is the stated goal."
+    },
+    {
+      "topic": "practice",
+      "text": "When personal analysis is requested, select comparable benchmark-candidate laps, locate where elapsed-time delta grows and inspect only the relevant measured corner or short range. Compare brake release, minimum speed, steering and throttle pickup with coverage and flags visible. Use recent history before bounded general history, and test only one supported change at a time.",
+      "evidence": "general_technique",
+      "source_ids": [],
+      "applicability": "Personal workflow guidance; benchmark eligibility is not official validity and measured differences do not establish cause."
     }
   ]
 }
