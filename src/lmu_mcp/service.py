@@ -16,7 +16,7 @@ from .analysis.braking import BrakingSettings, build_braking_zones, match_positi
 from .analysis.corner_metrics import automatic_ranges, corner_metrics
 from .manual_corners import load_manual_corners
 from .calibration import build_calibration_report
-from .track_knowledge import load_track_knowledge, match_detected_corner
+from .track_knowledge import load_track_knowledge, match_detected_corners
 from dataclasses import asdict
 from .alignment import distance_path, make_grid, aligned, validate_grid_request
 
@@ -224,8 +224,7 @@ class TelemetryService:
             rows=[corner_metrics(session,lap,path,row) for row in ranges]
             if pack is not None:
                 sources={item['id']:item for item in pack['sources']}
-                for row in rows:
-                    feature=match_detected_corner(row,pack)
+                for row,feature in zip(rows,match_detected_corners(rows,pack)):
                     if feature is not None:
                         row['name']=feature['name']
                         row['track_feature']={

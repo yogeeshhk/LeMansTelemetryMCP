@@ -199,13 +199,26 @@ def match_detected_corner(corner, pack):
     if width <= 0:
         return None
     candidates = []
+    overlapping = 0
     for feature in pack['features']:
         if feature['kind'] != 'corner' or feature['start_distance_m'] is None:
             continue
         left = feature['start_distance_m']
         right = feature['end_distance_m']
         overlap = max(0.0, min(end, right) - max(start, left))
+        overlapping += overlap > 0
         uncertainty = feature['uncertainty_m']
         if overlap / width >= 0.5 and left - uncertainty <= (start + end) / 2 <= right + uncertainty:
             candidates.append(feature)
-    return candidates[0] if len(candidates) == 1 else None
+    return candidates[0] if len(candidates) == 1 and overlapping == 1 else None
+
+
+def match_detected_corners(corners, pack):
+    """Suppress split detections that would give one named corner to multiple rows."""
+    matches = [match_detected_corner(corner, pack) for corner in corners]
+    counts = {}
+    for match in matches:
+        if match is not None:
+            counts[match['feature_id']] = counts.get(match['feature_id'], 0) + 1
+    return [match if match is not None and counts[match['feature_id']] == 1 else None
+            for match in matches]

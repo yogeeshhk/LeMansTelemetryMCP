@@ -3,7 +3,7 @@ import numpy as np
 from .alignment import crossing_times
 from .analysis.corner_metrics import automatic_ranges
 from .database import InspectionError
-from .track_knowledge import load_track_knowledge, match_detected_corner
+from .track_knowledge import load_track_knowledge, match_detected_corners
 
 MAX_REPORT_LAPS = 5
 
@@ -46,8 +46,7 @@ def build_calibration_report(service, session_id, max_laps=5):
                 path = service._path(session, lap)
                 corners, resolution = automatic_ranges(session, lap, path)
                 rows = []
-                for corner in corners:
-                    match = match_detected_corner(corner, pack)
+                for corner, match in zip(corners, match_detected_corners(corners, pack)):
                     rows.append({'detected_corner_id': corner['corner_id'],
                                  'start_distance_m': corner['start_distance_m'],
                                  'apex_distance_m': corner['apex_distance_m'],

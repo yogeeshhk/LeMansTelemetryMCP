@@ -1,0 +1,488 @@
+{
+  "version": 1,
+  "track": "Circuit de Spa-Francorchamps",
+  "layout": "Circuit de Spa-Francorchamps",
+  "status": "calibrated",
+  "sources": [
+    {
+      "id": "spa-2026-map",
+      "title": "Spa circuit operator 2026 access and distance map",
+      "url": "https://www.spa-francorchamps.be/assets/e70cff50-ae5d-4aaa-896b-54c8a953a357/all-plan-acces.pdf",
+      "retrieved": "2026-09-25"
+    },
+    {
+      "id": "wec-map",
+      "title": "FIA WEC Spa named corner and timing map",
+      "url": "https://press.fiawec.com/assets/fileuploads/68/12/681245187cd73.pdf",
+      "retrieved": "2026-09-25"
+    },
+    {
+      "id": "spa-character",
+      "title": "Spa circuit operator history and corner character",
+      "url": "https://www.spa-francorchamps.be/en/the-circuit",
+      "retrieved": "2026-09-25"
+    },
+    {
+      "id": "wec-2013-guide",
+      "title": "FIA WEC 2013 Spa circuit de-mystified",
+      "url": "https://www.fiawec.com/en/news/spa-francorchamps-circuit-de-mystified/22",
+      "retrieved": "2026-09-25"
+    },
+    {
+      "id": "wec-martin",
+      "title": "FIA WEC Maxime Martin on Spa rhythm",
+      "url": "https://www.fiawec.com/en/news/special-memories-from-spa-maxime-martin/6800",
+      "retrieved": "2026-09-25"
+    },
+    {
+      "id": "lmu-v12",
+      "title": "LMU V1.2 Update 2 release notes: kerbs and car-specific aero",
+      "url": "https://guide.lemansultimate.com/hc/en-gb/articles/14556121957775-V1-2-Update-2",
+      "retrieved": "2026-09-25"
+    }
+  ],
+  "features": [
+    {
+      "feature_id": "pit-straight",
+      "name": "Pit Straight",
+      "kind": "straight",
+      "order": 1,
+      "status": "approximate",
+      "start_distance_m": 0,
+      "end_distance_m": 200,
+      "uncertainty_m": 40,
+      "distance_method": "Broad lap-start approach from the operator map and LMU La Source detections; not a timing or braking line.",
+      "source_ids": [
+        "spa-2026-map",
+        "wec-map"
+      ],
+      "character": "Start-line approach to La Source.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Use the straight to settle the car and choose a repeatable visible braking reference for La Source. Check traffic before moving to the left for the right-hand hairpin. Begin conservatively and adjust the reference from consistent runs; the distance range here identifies the feature, not where you should brake.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "spa-2026-map",
+            "wec-map"
+          ],
+          "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    },
+    {
+      "feature_id": "la-source",
+      "name": "La Source",
+      "kind": "corner",
+      "order": 2,
+      "status": "calibrated",
+      "start_distance_m": 200,
+      "end_distance_m": 350,
+      "uncertainty_m": 35,
+      "distance_method": "Five valid LMU laps place detections around 212-341 m near the operator 220 m marker; split detections remain unnamed.",
+      "source_ids": [
+        "spa-2026-map",
+        "wec-map",
+        "spa-character"
+      ],
+      "character": "Right-hand hairpin after the start line.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Approach from the left and do most deceleration while straight. Ease off the brake as you ask the front tyres to turn, leaving room to complete the rotation before committing to throttle. Prioritise a tidy exit onto the downhill run: an early apex can leave you adding steering when you want to accelerate. Use the available exit width within current track limits; chasing the latest brake point is unhelpful if it delays drive.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "spa-2026-map",
+            "wec-map",
+            "spa-character"
+          ],
+          "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    },
+    {
+      "feature_id": "eau-rouge-raidillon",
+      "name": "Eau Rouge / Raidillon",
+      "kind": "complex",
+      "order": 3,
+      "status": "approximate",
+      "start_distance_m": 850,
+      "end_distance_m": 1150,
+      "uncertainty_m": 100,
+      "distance_method": "Operator map places the climb around 890-1130 m; five LMU laps detect only part around 961-1112 m. Full sequence is approximate.",
+      "source_ids": [
+        "spa-2026-map",
+        "wec-map"
+      ],
+      "character": "Left-right-left uphill sequence before Kemmel.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Treat the descent, compression and crest as one connected sequence. Look through the first left to position for the uphill right, then leave space to finish the left at the crest. Arrive at a speed you can hold with measured steering; a rushed correction compromises the run onto Kemmel. Build commitment gradually for the actual car and grip. Flat-out capability and aggressive kerb use are not established by this guide; allow more margin in rain or traffic.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "spa-2026-map",
+            "wec-map"
+          ],
+          "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    },
+    {
+      "feature_id": "kemmel",
+      "name": "Kemmel Straight",
+      "kind": "straight",
+      "order": 4,
+      "status": "approximate",
+      "start_distance_m": 1150,
+      "end_distance_m": 2245,
+      "uncertainty_m": 100,
+      "distance_method": "Broad corridor between the mapped Raidillon exit and Les Combes; endpoints are contextual, not measured brake points.",
+      "source_ids": [
+        "spa-2026-map",
+        "wec-map"
+      ],
+      "character": "Uphill straight leading to Les Combes.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Unwind steering as Raidillon opens and establish your line early. The quality of the preceding exit carries along this straight. Use the approach to Les Combes to decide whether you will follow or attempt a pass; finish any lateral move before heavy braking. A tow changes arrival speed, so a braking reference from a clear-air lap is only a starting point.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "spa-2026-map",
+            "wec-map"
+          ],
+          "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    },
+    {
+      "feature_id": "les-combes",
+      "name": "Les Combes",
+      "kind": "complex",
+      "order": 5,
+      "status": "calibrated",
+      "start_distance_m": 2245,
+      "end_distance_m": 2635,
+      "uncertainty_m": 50,
+      "distance_method": "Five LMU laps show three or four fragments around 2255-2616 m; mapped T5-T7 retained as one complex.",
+      "source_ids": [
+        "spa-2026-map",
+        "wec-map"
+      ],
+      "character": "Right-left-right sequence after Kemmel.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Brake with the car stable on the left for the opening right. Release pressure as you turn, then organise the change of direction so you can complete the left and prepare the final right. Avoid using all the road at the first exit if it traps the car for the next apex. Let throttle follow the opening line rather than accelerating into extra steering. Approach kerbs conservatively until their effect on this car is known.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "spa-2026-map",
+            "wec-map"
+          ],
+          "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    },
+    {
+      "feature_id": "bruxelles",
+      "name": "Bruxelles",
+      "kind": "corner",
+      "order": 6,
+      "status": "calibrated",
+      "start_distance_m": 2820,
+      "end_distance_m": 3080,
+      "uncertainty_m": 45,
+      "distance_method": "Five LMU laps detect the turn around 2835-3062 m near the operator 2870 m region; split matches are suppressed.",
+      "source_ids": [
+        "spa-2026-map",
+        "wec-map"
+      ],
+      "character": "Long right-hand bend before Speaker corner.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Approach from the left and leave yourself a margin on entry. Gradually release the brake as the right-hand arc develops, keeping attention on where the exit opens. If you turn too early or carry too much entry speed, the car can use up its exit room before it is ready to accelerate. Finish the right with enough control to place the car for the following left; treat extra steering as feedback to reassess entry speed, not proof of a setup fault.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "spa-2026-map",
+            "wec-map"
+          ],
+          "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    },
+    {
+      "feature_id": "speaker-corner",
+      "name": "Speaker corner",
+      "kind": "corner",
+      "order": 7,
+      "status": "calibrated",
+      "start_distance_m": 3080,
+      "end_distance_m": 3255,
+      "uncertainty_m": 40,
+      "distance_method": "Five LMU laps place the following left around 3085-3238 m; operator 3110 m region and WEC T9 name.",
+      "source_ids": [
+        "spa-2026-map",
+        "wec-map",
+        "lmu-v12"
+      ],
+      "character": "Left-hand turn between Bruxelles and Pouhon.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Place the car on the right when the Bruxelles exit permits, then make one measured turn into the left. Keep enough margin to avoid running out of road while opening the throttle. This corner sets up the run towards Pouhon; prioritise a predictable exit over an ambitious entry. Do not rely on cutting the inside: LMU release notes document changes to the no-name corner kerb, and current surface behaviour needs checking.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "spa-2026-map",
+            "wec-map",
+            "lmu-v12"
+          ],
+          "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    },
+    {
+      "feature_id": "pouhon",
+      "name": "Pouhon / Double Gauche",
+      "kind": "complex",
+      "order": 8,
+      "status": "calibrated",
+      "start_distance_m": 3670,
+      "end_distance_m": 4070,
+      "uncertainty_m": 100,
+      "distance_method": "Five LMU laps show variable merged/split left-turn detections around 3691-4047 m in the mapped double-left corridor.",
+      "source_ids": [
+        "spa-2026-map",
+        "wec-map",
+        "spa-character"
+      ],
+      "character": "Fast double-left sequence.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Approach from the right and settle the speed before committing to the first left. Link the two arcs: allow the car to open enough after the first apex to prepare the second without a sharp correction. Carry only the speed that lets you maintain the line and progressively release steering on exit. If the front starts washing wide, adding more lock may only add scrub. Reduce the next entry slightly and assess whether the whole sequence becomes cleaner.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "spa-2026-map",
+            "wec-map",
+            "spa-character"
+          ],
+          "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    },
+    {
+      "feature_id": "fagnes",
+      "name": "Fagnes",
+      "kind": "complex",
+      "order": 9,
+      "status": "calibrated",
+      "start_distance_m": 4295,
+      "end_distance_m": 4640,
+      "uncertainty_m": 80,
+      "distance_method": "Five LMU laps show two or three fragments around 4315-4623 m; WEC T12-T13 remains a complex.",
+      "source_ids": [
+        "spa-2026-map",
+        "wec-map"
+      ],
+      "character": "Right-left sequence after Pouhon.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Prepare on the left for the right-hand entry. Use a smooth brake release to rotate, but keep the first exit controlled so the left-hand part remains available. Sacrifice some first-apex commitment if it lets you finish the second turn with less steering and earlier usable throttle. Abrupt acceleration between the two bends can upset the change of direction. Judge the sequence by the quality of its final exit.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "spa-2026-map",
+            "wec-map"
+          ],
+          "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    },
+    {
+      "feature_id": "campus",
+      "name": "Campus",
+      "kind": "corner",
+      "order": 10,
+      "status": "calibrated",
+      "start_distance_m": 4730,
+      "end_distance_m": 4910,
+      "uncertainty_m": 45,
+      "distance_method": "Five LMU laps consistently detect one turn around 4746-4891 m beside the operator 4740 m Campus region.",
+      "source_ids": [
+        "spa-2026-map",
+        "wec-map"
+      ],
+      "character": "Right-hand turn before Courbe Paul Frere.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Approach from the left and make room for the right-hand arc. Balance entry speed against how soon you can open the wheel and build throttle towards the next right. An early apex that sends you wide can compromise both corners. Keep inputs progressive and assess the pair together; the aim is a repeatable run onto the fast return section, not a single impressive minimum-speed value.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "spa-2026-map",
+            "wec-map"
+          ],
+          "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    },
+    {
+      "feature_id": "paul-frere",
+      "name": "Courbe Paul Frere",
+      "kind": "corner",
+      "order": 11,
+      "status": "calibrated",
+      "start_distance_m": 4935,
+      "end_distance_m": 5165,
+      "uncertainty_m": 75,
+      "distance_method": "Five LMU laps show variable fragments around 4955-5145 m near the operator 5100 m region; duplicate matches remain unnamed.",
+      "source_ids": [
+        "spa-2026-map",
+        "wec-map"
+      ],
+      "character": "Right-hand bend leading onto the fast return section.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Use the Campus exit to prepare this right without a sudden repositioning. Look far enough ahead to see when the bend opens, and increase throttle as steering demand falls. The long acceleration afterwards makes exit quality valuable. Do not force full throttle while the line still needs extra steering; first establish a stable exit in the current car and conditions, then work towards carrying more speed.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "spa-2026-map",
+            "wec-map"
+          ],
+          "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    },
+    {
+      "feature_id": "blanchimont",
+      "name": "Blanchimont sequence",
+      "kind": "complex",
+      "order": 12,
+      "status": "approximate",
+      "start_distance_m": 5660,
+      "end_distance_m": 6150,
+      "uncertainty_m": 120,
+      "distance_method": "Operator map spans the return bends around 5700-6000 m; LMU detects only the later bend on four reviewed laps.",
+      "source_ids": [
+        "spa-2026-map",
+        "wec-map"
+      ],
+      "character": "Fast left-hand return bends before the final chicane.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Look through the fast lefts and make your placement early so steering changes remain small. Choose an entry speed that leaves room for the exit and the braking approach to the final chicane. A car that feels settled in clear air may respond differently in a tow or on a damp patch. Build speed progressively; this guide does not establish a flat-out target. Avoid abrupt corrections or attacking unfamiliar kerbs at high speed.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "spa-2026-map",
+            "wec-map"
+          ],
+          "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    },
+    {
+      "feature_id": "bus-stop",
+      "name": "Final Chicane (Bus Stop)",
+      "kind": "complex",
+      "order": 13,
+      "status": "calibrated",
+      "start_distance_m": 6540,
+      "end_distance_m": 6745,
+      "uncertainty_m": 55,
+      "distance_method": "Five LMU laps detect merged/split closing turns around 6560-6721 m beside the operator Chicane/6540 m region.",
+      "source_ids": [
+        "spa-2026-map",
+        "wec-map",
+        "wec-2013-guide"
+      ],
+      "character": "Right-left chicane returning to the pit straight.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "text": "Approach from the left, complete the main braking while stable, and release into the opening right. Keep that first part compact enough to position for the left. Wait until the second apex opens before committing to acceleration; over-attacking the first kerb can delay the entire exit. A clean departure rewards the next straight. In traffic, leave enough room for the change of direction rather than assuming the first apex completes the pass.",
+          "evidence": "general_technique",
+          "source_ids": [
+            "spa-2026-map",
+            "wec-map",
+            "wec-2013-guide"
+          ],
+          "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+        }
+      ]
+    }
+  ],
+  "coaching": [
+    {
+      "topic": "overview",
+      "text": "Spa combines long acceleration runs with linked fast bends and slower changes of direction. The circuit operator identifies the La Source hairpin, steep Raidillon climb and double-left Pouhon; WEC driver commentary stresses maintaining rhythm through the flowing sections. Learn the connected sequences before chasing isolated entry speeds.",
+      "evidence": "sourced",
+      "source_ids": [
+        "spa-character",
+        "wec-martin"
+      ],
+      "applicability": "Real-circuit character applied to the matching LMU layout. Historical driver commentary supplies no current car-specific gear or speed targets."
+    },
+    {
+      "topic": "overview",
+      "text": "Pack distances locate features and are not braking markers. Calibration reviewed five complete distance-valid laps on one recorded layout; some corners split or disappear under the detector thresholds. Eau Rouge/Raidillon and Blanchimont remain approximate as whole sequences. Source maps do not prove current kerb grip or track limits, and recorded GPS was not used as Earth geolocation.",
+      "evidence": "hypothesis",
+      "source_ids": [
+        "spa-2026-map",
+        "lmu-v12"
+      ],
+      "applicability": "Calibration limitations for this exact recorded layout; no guarantee for another layout, game revision, car or weather."
+    },
+    {
+      "topic": "setup",
+      "text": "Start from the appropriate in-game baseline for the selected car. Evaluate whether it stays settled through Raidillon, Pouhon and Blanchimont while still rotating through the slower sequences. The setup objective is usable balance over the lap; reducing drag is not a gain if it forces lifts or repeated corrections. This is a testing priority, not a diagnosis of the current setup.",
+      "evidence": "general_technique",
+      "source_ids": [
+        "wec-2013-guide"
+      ],
+      "applicability": "General setup assessment only. The 2013 WEC article is historical context; it does not establish current LMU wing clicks, springs or pressures."
+    },
+    {
+      "topic": "setup",
+      "text": "LMU V1.2 Update 2 specifically assigns the Oreca 07 LMP2+ (ELMS Spec) a high-downforce Spa aero package. That note concerns that model and specification; it is not a setup prescription for GT3, Hypercar or the regular Oreca variant. Confirm the selected car and available settings before proposing numerical changes.",
+      "evidence": "sourced",
+      "source_ids": [
+        "lmu-v12"
+      ],
+      "applicability": "Oreca 07 LMP2+ (ELMS Spec), V1.2 Update 2 release-note context only; no adjustable value or owner setup is inferred."
+    },
+    {
+      "topic": "race",
+      "text": "The WEC circuit guide identifies La Source, Les Combes and the final chicane as major braking and passing areas, and highlights localised rain as a tyre-choice challenge. Those are circuit-level considerations, not a fixed pit strategy for an LMU race.",
+      "evidence": "sourced",
+      "source_ids": [
+        "wec-2013-guide"
+      ],
+      "applicability": "Historical real-world circuit guidance; check actual LMU weather, race format, tyre rules and traffic."
+    },
+    {
+      "topic": "race",
+      "text": "For a stint, seek repeatable exits and avoid sustained sliding through the fast bends. Observe tyre behaviour over several comparable laps rather than inferring wear from one slow corner. Leave additional margin when grip changes across the lap. Fuel range, tyre condition and race duration must be known before selecting a stop window; the guide supplies none of those personal measurements.",
+      "evidence": "general_technique",
+      "source_ids": [],
+      "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+    },
+    {
+      "topic": "practice",
+      "text": "First rehearse La Source and the final chicane for exits that need no late steering correction. Next link Les Combes and Fagnes without rushing the first apex. Finally build Pouhon and the fast crest/return sections gradually, keeping the same intended line. Work on one sequence at a time; a good repetition feels settled and leaves room to accelerate as the steering unwinds.",
+      "evidence": "general_technique",
+      "source_ids": [],
+      "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+    },
+    {
+      "topic": "practice",
+      "text": "When personal analysis is requested, compare similar-condition benchmark laps and inspect a bounded section where elapsed-time loss grows. Relate brake release, minimum speed and throttle pickup to the sequence above. Keep fuel, tyres, traffic, weather and missing samples visible; slower does not automatically mean a driving mistake or a setup defect.",
+      "evidence": "general_technique",
+      "source_ids": [],
+      "applicability": "General technique for the exact LMU Spa layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred."
+    }
+  ]
+}
