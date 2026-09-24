@@ -12,6 +12,7 @@ from .database import InspectionError, Repository
 from .diagnostics import diagnose, format_diagnostics
 from .private_path import load_or_create, rotate
 from .server import create_server
+from .service import TelemetryService
 
 HOST = '127.0.0.1'
 PORT = 18765
@@ -58,6 +59,9 @@ def main(argv=None):
     inspection.add_argument('session_id')
     diagnosis = commands.add_parser('diagnose',help='Report read-only schema and lap support for one recording.')
     diagnosis.add_argument('session_id')
+    calibration = commands.add_parser('calibration-report',help='Print bounded local track calibration evidence as JSON.')
+    calibration.add_argument('session_id')
+    calibration.add_argument('--max-laps',type=int,default=5)
     commands.add_parser('serve',help='Serve private Streamable HTTP on 127.0.0.1:18765.')
     commands.add_parser('rotate-secret',help='Rotate the private MCP URL path; restart the server afterward.')
     args = parser.parse_args(argv)
@@ -66,6 +70,8 @@ def main(argv=None):
             inspect(args.session_id)
         elif args.command == 'diagnose':
             print(format_diagnostics(diagnose(args.session_id)))
+        elif args.command == 'calibration-report':
+            print(json.dumps(TelemetryService().calibration_report(args.session_id,args.max_laps),ensure_ascii=False))
         elif args.command == 'serve':
             serve_http()
         elif args.command == 'rotate-secret':

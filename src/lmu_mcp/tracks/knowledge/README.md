@@ -18,3 +18,11 @@ Example synthetic pack:
   "features": [{"feature_id": "turn-one", "name": "Turn One", "kind": "corner", "order": 1, "status": "calibrated", "start_distance_m": 25, "end_distance_m": 65, "uncertainty_m": 5, "distance_method": "Reviewed against two synthetic laps", "source_ids": ["official"]}]
 }
 ```
+
+To review candidate distance associations before marking a pack calibrated, run the local read-only report from the project directory:
+
+```powershell
+.\.venv\Scripts\lmu-mcp.exe calibration-report '<relative-session-id>' --max-laps 5
+```
+
+The command prints bounded JSON with complete-lap turn ranges, optional rounded GPS points, candidate feature IDs and unsupported lap codes. It omits driver and setup metadata. Redirect it into ignored `.runtime/` if a local review artifact is useful; do not commit the output or treat a candidate association as verified without checking the source map and multiple laps.

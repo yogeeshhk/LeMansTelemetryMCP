@@ -155,3 +155,25 @@ def load_track_knowledge(track, layout, directory=KNOWLEDGE_DIR):
                     'Multiple track packs match this exact track and layout.')
             found = pack
     return found
+
+
+def match_detected_corner(corner, pack):
+    """Associate only a unique sourced corner range; complexes remain guide context."""
+    if pack is None:
+        return None
+    start = float(corner['start_distance_m'])
+    end = float(corner['end_distance_m'])
+    width = end - start
+    if width <= 0:
+        return None
+    candidates = []
+    for feature in pack['features']:
+        if feature['kind'] != 'corner' or feature['start_distance_m'] is None:
+            continue
+        left = feature['start_distance_m']
+        right = feature['end_distance_m']
+        overlap = max(0.0, min(end, right) - max(start, left))
+        uncertainty = feature['uncertainty_m']
+        if overlap / width >= 0.5 and left - uncertainty <= (start + end) / 2 <= right + uncertainty:
+            candidates.append(feature)
+    return candidates[0] if len(candidates) == 1 else None

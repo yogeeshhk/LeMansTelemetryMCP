@@ -15,6 +15,7 @@ from .analysis.summary import lap_summary, speed_factor, control_transitions, ma
 from .analysis.braking import BrakingSettings, build_braking_zones, match_positions
 from .analysis.corner_metrics import automatic_ranges, corner_metrics
 from .manual_corners import load_manual_corners
+from .calibration import build_calibration_report
 from dataclasses import asdict
 from .alignment import distance_path, make_grid, aligned, validate_grid_request
 
@@ -290,6 +291,9 @@ class TelemetryService:
                            'definition_source':reference_result['definition_source'],
                            'units':{'distance':'m','speed':'km/h','time':'s','steering':'%'},
                            'note':'Automatic corner IDs are per-lap ordinals; later laps match the first lap by approximate start position within 100 m. Manual IDs match exact track/layout definitions. Deltas are lap minus reference in each field unit; quality flags suppress unsupported deltas. Section time is reconstructed, not official. Differences alone do not establish driving cause.'})
+
+    def calibration_report(self, session_id, max_laps=5):
+        return output(build_calibration_report(self, session_id, max_laps))
 
     def list_sessions(self, search='', offset=0, limit=20):
         require(type(offset) is int and offset>=0 and type(limit) is int and 1<=limit<=100,'invalid_page','Use a nonnegative offset and limit from 1 to 100.')
