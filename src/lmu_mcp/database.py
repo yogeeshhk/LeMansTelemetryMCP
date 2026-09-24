@@ -211,6 +211,20 @@ class SignalReader:
         rows = self.connection.execute("SELECT key, left(value, 256) FROM metadata WHERE key IN (SELECT unnest(?)) LIMIT 20", [sorted(allowed)]).fetchall()
         return dict(rows)
 
+    def car_setup_json(self):
+        """Read only the bounded setup value; callers must parse it through the allowlist."""
+        from .setup import MAX_SETUP_JSON_CHARS
+        table = next((t for t in self.inspection.tables
+                      if (t.schema, t.name, t.kind) == ("main", "metadata", "BASE TABLE")), None)
+        if table is None or not {"key", "value"} <= {column.name for column in table.columns}:
+            return None
+        row = self.connection.execute(
+            "SELECT left(value, ?), length(value) FROM metadata WHERE key=? LIMIT 1",
+            [MAX_SETUP_JSON_CHARS + 1, "CarSetup"],
+        ).fetchone()
+        if row is None or not isinstance(row[0], str) or row[1] > MAX_SETUP_JSON_CHARS:
+            return None
+        return row[0]
     def extrema(self, source):
         # Validate the source without reading its complete values.
         table = next((t for t in self.inspection.tables if (t.schema,t.name,t.kind)==(source.schema,source.table,"BASE TABLE")),None)
