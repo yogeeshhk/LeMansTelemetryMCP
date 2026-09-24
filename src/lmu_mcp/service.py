@@ -18,6 +18,8 @@ from .manual_corners import load_manual_corners
 from .calibration import build_calibration_report
 from .track_knowledge import load_track_knowledge, match_detected_corner, match_detected_corners
 from .analysis.excursions import ExcursionSettings, detect_path_deviations
+from .analysis.history import build_experiments, select_ranked_laps, summarize_corner_evidence
+from .setup import parse_car_setup
 from dataclasses import asdict
 from .alignment import distance_path, make_grid, aligned, validate_grid_request
 
@@ -508,6 +510,240 @@ class TelemetryService:
             },
             "units": {"distance": "m", "time": "s"},
             "method": "Complete laps, including flagged laps, are counted without becoming pace benchmarks. Sustained vehicle-centre Path Lateral magnitude beyond same-side Track Edge is clustered within 100 m by side. Missing data, clock/source gaps, lap resets and invalid distance paths are not bridged. Results are unconfirmed path deviations, not official track-limit violations.",
+        })
+    def _bounded_history_sessions(self, session_id, scope):
+        with self.session(session_id) as selected_session:
+            identity = {key: selected_session.metadata.get(key)
+                        for key in ("TrackName", "TrackLayout", "CarName")}
+        require(all(isinstance(value, str) and value for value in identity.values()),
+                "missing_identity", "Track, layout and car metadata are required for history analysis.")
+        session_ids = [session_id]
+        examined = 0
+        truncated = False
+        if scope == "general":
+            discovered = sorted(self.repository.discover(),
+                                key=lambda item: (item.get("modified_ns", 0), item["session_id"]),
+                                reverse=True)
+            for item in discovered:
+                candidate = item["session_id"]
+                if candidate == session_id or item.get("status") != "discovered":
+                    continue
+                if examined >= config.MAX_EXCURSION_DISCOVERY_CANDIDATES:
+                    truncated = True
+                    break
+                examined += 1
+                try:
+                    with self.session(candidate) as other:
+                        matches = all(other.metadata.get(key) == value
+                                      for key, value in identity.items())
+                except InspectionError:
+                    continue
+                if matches:
+                    if len(session_ids) >= config.MAX_EXCURSION_HISTORY_SESSIONS:
+                        truncated = True
+                        break
+                    session_ids.append(candidate)
+        return identity, session_ids, examined, truncated
+
+    @staticmethod
+    def _match_history_corner(reference, reference_source, rows):
+        if reference_source == "manual":
+            return next((row for row in rows
+                         if row["corner_id"] == reference["corner_id"]), None), "manual_id"
+        feature = reference.get("track_feature")
+        if feature:
+            candidate = next((row for row in rows
+                              if row.get("track_feature", {}).get("feature_id") == feature["feature_id"]), None)
+            if candidate:
+                return candidate, "sourced_feature_id"
+        choices = [row for row in rows
+                   if abs(row["start_distance_m"] - reference["start_distance_m"]) <= 100]
+        choices.sort(key=lambda row: (abs(row["start_distance_m"] - reference["start_distance_m"]),
+                                      row["start_distance_m"]))
+        return (choices[0], "nearest_start_within_100_m") if choices else (None, "unmatched")
+
+    def get_corner_history(self, session_id, corner_id, scope="recent"):
+        require(type(corner_id) is int and 1 <= corner_id <= 1000, "invalid_corner",
+                "Choose a positive corner_id from get_corners on a complete reference lap.")
+        require(scope in ("recent", "general"), "invalid_scope",
+                "Use scope 'recent' for the selected recording or 'general' for bounded exact-layout/car history.")
+        identity, session_ids, candidates_examined, sessions_truncated = self._bounded_history_sessions(
+            session_id, scope
+        )
+        candidates = []
+        conditions = []
+        unsupported_laps = []
+        remaining = config.MAX_EXCURSION_HISTORY_LAPS
+        laps_truncated = False
+        for current in session_ids:
+            if remaining <= 0:
+                laps_truncated = True
+                break
+            with self.session(current) as session:
+                laps = self._laps(session)
+                complete = [lap for lap in laps if lap["complete"]]
+                chosen = complete[:remaining]
+                remaining -= len(chosen)
+                laps_truncated |= len(complete) > len(chosen)
+                valid_laps = []
+                for lap in chosen:
+                    distance_valid = True
+                    try:
+                        self._path(session, lap)
+                    except InspectionError as error:
+                        distance_valid = False
+                        unsupported_laps.append({"session_id": current, "lap": lap["lap"],
+                                                 "code": error.code})
+                    candidate = {
+                        "session_id": current,
+                        "lap": lap["lap"],
+                        "lap_time_s": lap["lap_time_s"],
+                        "benchmark_candidate": lap["benchmark_candidate"],
+                        "complete": True,
+                        "distance_valid": distance_valid,
+                        "flags": list(lap["flags"]),
+                    }
+                    candidates.append(candidate)
+                    if distance_valid:
+                        valid_laps.append(lap)
+                conditions.append({
+                    "session_id": current,
+                    "weather": session.metadata.get("WeatherConditions"),
+                    "session_type": session.metadata.get("SessionType"),
+                    "complete_laps_considered": len(chosen),
+                    "distance_valid_laps": len(valid_laps),
+                })
+        selected_valid = [row for row in candidates
+                          if row["session_id"] == session_id and row["distance_valid"]]
+        require(selected_valid, "unsupported_corner_history",
+                "Selected recording has no complete distance-valid lap for resolving corner_id.")
+        reference_candidate = min(
+            selected_valid,
+            key=lambda row: (not row["benchmark_candidate"],
+                             row["lap_time_s"] if type(row["lap_time_s"]) in (int, float)
+                             and row["lap_time_s"] > 0 else float("inf"), row["lap"]),
+        )
+        with self.session(session_id) as session:
+            reference_lap = self._select_lap(session, reference_candidate["lap"])
+            reference_result = self._corners(session, reference_lap)
+            reference = next((row for row in reference_result["corners"]
+                              if row["corner_id"] == corner_id), None)
+            require(reference is not None, "unknown_corner",
+                    "Corner ID is absent on the selected recording's resolved reference lap; call get_corners for a complete lap.")
+            setup = parse_car_setup(session.reader.car_setup_json())
+        ranking = select_ranked_laps(candidates)
+        sample_rows = []
+        unmatched = []
+        overlap_events = 0
+        overlap_laps = set()
+        selected_by_session = {}
+        for row in ranking["selected"]:
+            selected_by_session.setdefault(row["session_id"], []).append(row)
+        metric_fields = tuple(field for fields in (
+            ("entry_speed_kph", "brake_point_m", "turn_in_position_m"),
+            ("minimum_speed_kph", "minimum_speed_position_m", "maximum_absolute_steering_pct"),
+            ("throttle_pickup_position_m", "full_throttle_position_m", "exit_speed_kph", "tc_active_time_s"),
+        ) for field in fields)
+        for current, selected_rows in selected_by_session.items():
+            with self.session(current) as session:
+                laps = {lap["lap"]: lap for lap in self._laps(session)}
+                for selected in selected_rows:
+                    lap = laps[selected["lap"]]
+                    result = self._corners(session, lap)
+                    corner, match_method = self._match_history_corner(
+                        reference, reference_result["definition_source"], result["corners"]
+                    )
+                    if corner is None:
+                        unmatched.append({"session_id": current, "lap": lap["lap"]})
+                        continue
+                    try:
+                        excursion = self._excursion_lap(session, lap)
+                        overlaps = [event for event in excursion["events"]
+                                    if event["end_distance_m"] >= corner["start_distance_m"]
+                                    and event["start_distance_m"] <= corner["end_distance_m"]]
+                    except InspectionError:
+                        overlaps = []
+                    if overlaps:
+                        overlap_events += len(overlaps)
+                        overlap_laps.add((current, lap["lap"]))
+                    metrics = {field: corner.get(field) for field in metric_fields}
+                    sample_rows.append({
+                        "session_id": current,
+                        "lap": lap["lap"],
+                        "selection": selected["selection"],
+                        "lap_time_s": selected["lap_time_s"],
+                        "timing_source": selected["timing_source"],
+                        "benchmark_candidate": selected["benchmark_candidate"],
+                        "quality_flags": list(corner.get("quality_flags", [])),
+                        "lap_flags": list(selected["flags"]),
+                        "match_method": match_method,
+                        "metrics": metrics,
+                        "excursion_overlap_count": len(overlaps),
+                    })
+        evidence = summarize_corner_evidence(sample_rows)
+        relevant_ids = {
+            "VM_BRAKE_BALANCE", "VM_BRAKE_PRESSURE", "VM_FRONT_WING", "VM_REAR_WING",
+            "VM_DIFF_PRELOAD", "VM_DIFF_POWER", "VM_DIFF_COAST", "VM_FRONT_ANTISWAY",
+            "VM_REAR_ANTISWAY", "VM_TRACTIONCONTROLMAP",
+            "VM_TRACTIONCONTROLPOWERCUTMAP", "VM_TRACTIONCONTROLSLIPANGLEMAP",
+        }
+        relevant_settings = [row for row in setup["settings"]
+                             if row["setting_id"] in relevant_ids]
+        coaching = build_experiments(evidence, identity["CarName"], relevant_settings)
+        weather_values = {row["weather"] for row in conditions if row["weather"] is not None}
+        return output({
+            "session_id": session_id,
+            "corner_id": corner_id,
+            "scope": scope,
+            "identity": identity,
+            "status": "supported" if sample_rows else ranking["status"],
+            "reference": {
+                "session_id": session_id,
+                "lap": reference_lap["lap"],
+                "corner_id": reference["corner_id"],
+                "name": reference.get("name"),
+                "start_distance_m": reference["start_distance_m"],
+                "end_distance_m": reference["end_distance_m"],
+                "definition_source": reference_result["definition_source"],
+                "track_feature": reference.get("track_feature"),
+            },
+            "selection": {**{key: value for key, value in ranking.items() if key != "selected"},
+                          "laps": ranking["selected"]},
+            "lap_samples": sample_rows,
+            "evidence": evidence,
+            "unmatched_laps": unmatched,
+            "unsupported_laps": unsupported_laps,
+            "excursion_overlap": {
+                "event_count": overlap_events,
+                "affected_laps": len(overlap_laps),
+                "confidence": "unconfirmed_path_deviation",
+            },
+            "conditions": {
+                "sessions": conditions,
+                "mixed_weather": len(weather_values) > 1,
+                "note": "Weather/session metadata is recording-level context; traffic and changing grip remain unmeasured confounders.",
+            },
+            "setup_context": {
+                "status": setup["status"],
+                "settings": relevant_settings,
+                "omitted": setup["omitted"],
+                "warnings": setup["warnings"],
+                "note": "Recorded current context only. Raw integer direction is unverified unless an experiment cites an exact applicable car source; no setup file is written.",
+            },
+            "experiments": coaching["experiments"],
+            "feedback_requests": coaching["feedback_requests"],
+            "next_step": coaching["next_step"],
+            "sources": coaching["sources"],
+            "truncation": {
+                "candidate_sessions_examined": candidates_examined,
+                "candidate_session_limit": config.MAX_EXCURSION_DISCOVERY_CANDIDATES,
+                "matching_session_limit": config.MAX_EXCURSION_HISTORY_SESSIONS,
+                "complete_lap_limit": config.MAX_EXCURSION_HISTORY_LAPS,
+                "sessions_truncated": sessions_truncated,
+                "laps_truncated": laps_truncated,
+            },
+            "units": {"distance": "m", "speed": "km/h", "time": "s", "steering": "%"},
+            "method": "Recorded Lap Time ranks disjoint fastest benchmark and slowest complete distance-valid groups. Corner matching uses manual ID, then unique sourced feature, then nearest measured start within 100 m. Repeated entry/mid/exit differences are observations, not causes. Setup experiments require repeated evidence, an available allowlisted setting and an exact car-applicable source; change one setting at a time.",
         })
     def get_track_guide(self, session_id, offset=0, limit=50):
         require(type(offset) is int and offset>=0 and type(limit) is int and 1<=limit<=50,
