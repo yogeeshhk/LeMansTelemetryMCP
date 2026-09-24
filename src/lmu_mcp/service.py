@@ -105,6 +105,27 @@ class TelemetryService:
     def _select_lap(self, session, number):
         return select_lap(session,number,self._laps(session))
 
+    def _path(self, session, lap):
+        session_id=session.inspection.session_id
+        revision=session.cache_revision
+        settings=(config.MAX_SOURCE_SAMPLES,config.MAX_TOTAL_SOURCE_SAMPLES)
+        path=self.cache.get(session_id,revision,'distance_path',lap['lap'],settings)
+        if path is None:
+            path=distance_path(session,lap)
+            self.cache.put(session_id,revision,'distance_path',path,lap['lap'],settings)
+        return path
+
+    def _aligned(self, session, lap, path, grid, channels, start, end, resolution):
+        session_id=session.inspection.session_id
+        revision=session.cache_revision
+        settings=(config.MAX_SOURCE_SAMPLES,config.MAX_TOTAL_SOURCE_SAMPLES)
+        parts=(lap['lap'],tuple(channels),start,end,resolution,settings)
+        result=self.cache.get(session_id,revision,'aligned',*parts)
+        if result is None:
+            result=aligned(session,lap,path,grid,channels)
+            self.cache.put(session_id,revision,'aligned',result,*parts)
+        return result
+
     def list_sessions(self, search='', offset=0, limit=20):
         require(type(offset) is int and offset>=0 and type(limit) is int and 1<=limit<=100,'invalid_page','Use a nonnegative offset and limit from 1 to 100.')
         require(isinstance(search,str) and len(search)<=128,'invalid_search','Search must be at most 128 characters.')
@@ -169,10 +190,10 @@ class TelemetryService:
         channels=['speed','brake','throttle','steering','gear'] if channels is None else channels
         validate_grid_request(start_distance_m,end_distance_m,resolution_m,channels)
         with self.session(session_id) as s:
-            info=self._select_lap(s,lap);path=distance_path(s,info)
+            info=self._select_lap(s,lap);path=self._path(s,info)
             end=float(path[1][-1]) if end_distance_m is None else end_distance_m
             grid=make_grid(start_distance_m,end,resolution_m,channels)
-            result=aligned(s,info,path,grid,channels)
+            result=self._aligned(s,info,path,grid,channels,start_distance_m,end,resolution_m)
             return output({**result,'start_distance_m':start_distance_m,'end_distance_m':end,'resolution_m':resolution_m,
                            'distance_m':grid,'lap_quality':info,'note':'No extrapolation: uncovered distance or timing gaps return null. Units remain producer units; steering is not converted to degrees.'})
 
@@ -184,10 +205,10 @@ class TelemetryService:
         with self.session(session_id) as s:
             infos=[self._select_lap(s,n) for n in laps]
             require(all(r['benchmark_candidate'] for r in infos),'ineligible_lap','Choose benchmark candidates from list_laps; comparisons exclude incomplete, zero-time, pit, impact and clock-gap intervals.')
-            paths=[distance_path(s,r) for r in infos]
+            paths=[self._path(s,r) for r in infos]
             end=min(float(path[1][-1]) for path in paths) if end_distance_m is None else end_distance_m
             grid=make_grid(start_distance_m,end,resolution_m,channels,len(laps))
-            results=[aligned(s,r,path,grid,channels) for r,path in zip(infos,paths)]
+            results=[self._aligned(s,r,path,grid,channels,start_distance_m,end,resolution_m) for r,path in zip(infos,paths)]
             deltas=[]
             for i in range(1,len(results)):
                 a,b=results[0],results[i]

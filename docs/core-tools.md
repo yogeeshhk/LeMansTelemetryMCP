@@ -78,7 +78,7 @@ Telemetry uses column arrays sharing one `distance_m` grid. MCP returns the same
 - At most 2 million source rows per signal read and 10 million across a request. These bound local processing; full source arrays are never sent automatically to the model.
 - Responses are limited to 300 KB, including both SDK text and structured content with envelope allowance. Request fewer channels/laps, a shorter range or **larger** `resolution_m` (coarser spacing) when rejected.
 - Control-onset lists retain at most 50 entries per control/lap with `total` and `truncated` fields. Telemetry arrays are never silently truncated.
-- Two analysis workers execute off the async transport loop. Connections and per-request caches are closed/discarded after a call; cross-request caching belongs to its later phase.
+- Two analysis workers execute off the async transport loop. Connections are closed after each call. A 64-entry/64 MiB process LRU retains inspection/channel mapping, lap boundaries, distance paths and exact aligned queries across calls. Each call reopens the file read-only and checks its revision; changed mtime/size/file identity evicts that recording's entries. A WAL/lock failure is retried and never cached. Cache keys for aligned results include lap, channel selection, distance bounds, spacing and source-budget settings. Braking-zone and corner results will use this cache when those tools are implemented in Phases 12/13.
 
 The original DuckDB is opened read-only with external access and extension auto-loading/installation disabled. SQL values are parameterized, and dynamic table/column names come only from inspected base-table schemas. No arbitrary SQL tool is exposed.
 

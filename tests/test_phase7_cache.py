@@ -64,3 +64,47 @@ def test_cache_is_lru_bounded_and_clears_changed_revision(monkeypatch):
     assert cache.entry_count==0 and cache.get('race',(1,),'schema') is None
     cache.put('race',(1,),'schema',{'stale':True})
     assert cache.entry_count==0
+    monkeypatch.setattr('lmu_mcp.config.MAX_CACHE_BYTES',100)
+    cache.put('race',(2,),'oversized',list(range(1000)))
+    assert cache.entry_count==0 and cache.size_bytes==0
+
+
+def test_aligned_queries_reuse_exact_keys_and_refresh_after_edit(recording,monkeypatch):
+    counts=Counter()
+    original_path=service_module.distance_path
+    original_aligned=service_module.aligned
+    def path(*args):
+        counts['path']+=1
+        return original_path(*args)
+    def align(*args):
+        counts['aligned']+=1
+        return original_aligned(*args)
+    monkeypatch.setattr(service_module,'distance_path',path)
+    monkeypatch.setattr(service_module,'aligned',align)
+    api=TelemetryService(Repository(recording.parent))
+    first=api.get_telemetry(recording.name,1,['speed'],50,52,1)
+    first['channels']['speed'][0]=-999  # A caller cannot mutate the cached array.
+    again=api.get_telemetry(recording.name,1,['speed'],50,52,1)
+    assert again['channels']['speed'][0]==36
+    assert counts=={'path':1,'aligned':1}
+    api.get_telemetry(recording.name,1,['speed'],50,52,.5)
+    assert counts=={'path':1,'aligned':2}
+    api.compare_laps(recording.name,[1,2],['speed'],20,80,10)
+    api.compare_laps(recording.name,[1,2],['speed'],20,80,10)
+    assert counts=={'path':2,'aligned':4}
+    with duckdb.connect(str(recording)) as connection:
+        connection.execute('UPDATE "Ground Speed" SET value=99 WHERE rowid=50')
+    stat=recording.stat()
+    os.utime(recording,ns=(stat.st_atime_ns,stat.st_mtime_ns+1_000_000_000))
+    changed=api.get_telemetry(recording.name,1,['speed'],50,52,1)
+    assert changed['channels']['speed'][0]==99
+    assert counts=={'path':3,'aligned':5}
+
+
+def test_tighter_source_budget_cannot_reuse_cached_derived_arrays(recording,monkeypatch):
+    api=TelemetryService(Repository(recording.parent))
+    assert api.get_telemetry(recording.name,1,['speed'],50,52,1)['channels']['speed'][0]==36
+    monkeypatch.setattr('lmu_mcp.config.MAX_SOURCE_SAMPLES',10)
+    with pytest.raises(InspectionError) as error:
+        api.get_telemetry(recording.name,1,['speed'],50,52,1)
+    assert error.value.code=='source_limit'

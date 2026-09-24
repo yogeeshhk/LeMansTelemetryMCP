@@ -56,6 +56,7 @@ src/lmu_mcp/
     database.py     # Read-only discovery, inspection and numeric reads
     telemetry.py    # Validated clocks and signal sampling
     alignment.py    # Bounded distance grids and crossing times
+    cache.py        # Bounded revision-aware analysis cache
     service.py      # Direct Python coaching API
     server.py       # MCP factory and stdio entry point
     analysis/       # Lap boundaries and compact summaries
