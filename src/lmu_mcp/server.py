@@ -1,9 +1,9 @@
-"""MCP factory and stdio entry point. Windows/ngrok orchestration is a later phase."""
+"""MCP factory and stdio entry point."""
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from .service import TelemetryService
 from .tools.common import Runner
-from .tools import sessions,laps,telemetry
+from .tools import sessions,laps,telemetry,braking
 
 INSTRUCTIONS = (
     'Coach progressively: list_sessions -> get_session_info -> list_laps -> get_lap_summary '
@@ -23,9 +23,10 @@ INSTRUCTIONS = (
     'channels. Set start_distance_m and end_distance_m explicitly for detailed queries and query '
     'the same range on both laps. Nulls/gaps are missing evidence, not zero loss. Stop when the '
     'question is answered; do not download every channel or repeatedly refine to the minimum spacing. '
-    '\nOnly call tools advertised by this server. compare_corner and compare_braking_zones belong '
-    'to later phases and are not available yet; use coarse control_point_differences to locate a '
-    'section, then get_telemetry. Do not invent corner names or wheel order. Explain observed '
+    '\nFor braking questions, use get_braking_zones after lap summaries and compare_braking_zones '
+    'for two candidate laps; inspect unmatched, partial and excluded zones before coaching. '
+    'Compare thresholds consistently across laps. compare_corner remains unavailable; do not invent '
+    'corner names or wheel order. Explain observed '
     'differences separately from hypotheses and suggest a focused practice experiment, not '
     'an unsupported causal diagnosis.'
 )
@@ -47,6 +48,7 @@ def create_server(service=None, private_path=None):
     sessions.register(mcp,runner)
     laps.register(mcp,runner)
     telemetry.register(mcp,runner)
+    braking.register(mcp,runner)
     return mcp
 
 

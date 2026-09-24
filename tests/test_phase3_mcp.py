@@ -50,7 +50,7 @@ async def check_protocol(read,write):
         initialized=await client.initialize()
         assert initialized.serverInfo.name=='Le Mans Ultimate Telemetry'
         tools=await client.list_tools()
-        expected={'list_sessions','get_session_info','list_channels','list_laps','get_lap_summary','get_telemetry','compare_laps'}
+        expected={'list_sessions','get_session_info','list_channels','list_laps','get_lap_summary','get_telemetry','compare_laps','get_braking_zones','compare_braking_zones'}
         assert {t.name for t in tools.tools}==expected
         for tool in tools.tools:
             assert tool.annotations.readOnlyHint is True
@@ -61,7 +61,9 @@ async def check_protocol(read,write):
                ('list_channels',{'session_id':'race.duckdb'}),('list_laps',{'session_id':'race.duckdb'}),
                ('get_lap_summary',{'session_id':'race.duckdb','lap':1}),
                ('get_telemetry',{'session_id':'race.duckdb','lap':1,'channels':['speed','gear'],'start_distance_m':45,'end_distance_m':55,'resolution_m':1}),
-               ('compare_laps',{'session_id':'race.duckdb','laps':[1,2],'channels':['speed'],'start_distance_m':20,'end_distance_m':80,'resolution_m':10})]
+               ('compare_laps',{'session_id':'race.duckdb','laps':[1,2],'channels':['speed'],'start_distance_m':20,'end_distance_m':80,'resolution_m':10}),
+               ('get_braking_zones',{'session_id':'race.duckdb','lap':1}),
+               ('compare_braking_zones',{'session_id':'race.duckdb','lap_a':1,'lap_b':2})]
         for name,args in calls:
             result=await client.call_tool(name,args)
             assert not result.isError,(name,result)
@@ -155,3 +157,27 @@ async def test_progressive_workflow_locates_local_loss(recording):
                 assert all(detail['units']['speed']=='km/h' for detail in details)
                 durations=[detail['elapsed_s'][-1]-detail['elapsed_s'][0] for detail in details]
                 assert durations[0]-durations[1]==pytest.approx(2)
+
+
+@pytest.mark.anyio
+async def test_braking_tools_return_known_zone_and_validation_error(recording):
+    import duckdb
+    with duckdb.connect(str(recording)) as connection:
+        connection.execute("""UPDATE "Ground Speed" SET value = CASE
+            WHEN rowid BETWEEN 20 AND 40 THEN 100 - (rowid - 20) * 2
+            WHEN rowid BETWEEN 124 AND 148 THEN 95 - (rowid - 124) * 1.7
+            ELSE 100 END""")
+    async with http_server(recording) as url:
+        async with streamable_http_client(url) as (read,write,_):
+            async with ClientSession(read,write) as client:
+                await client.initialize()
+                zones=await client.call_tool('get_braking_zones',{'session_id':'race.duckdb','lap':1})
+                assert not zones.isError and len(zones.structuredContent['zones'])==1
+                assert zones.structuredContent['zones'][0]['start_distance_m']==20
+                comparison=await client.call_tool('compare_braking_zones',
+                                                  {'session_id':'race.duckdb','lap_a':1,'lap_b':2})
+                assert not comparison.isError and len(comparison.structuredContent['matches'])==1
+                assert comparison.structuredContent['matches'][0]['a_minus_b']['initial_speed_kph']==5
+                invalid=await client.call_tool('get_braking_zones',
+                                               {'session_id':'race.duckdb','lap':1,'onset_pct':4,'release_pct':5})
+                assert invalid.isError and 'invalid_threshold' in invalid.content[0].text

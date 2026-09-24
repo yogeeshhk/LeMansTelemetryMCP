@@ -83,3 +83,26 @@ def test_braking_cache_invalidates_when_recording_changes(braking_api):
         connection.execute('UPDATE "Ground Speed" SET value=30 WHERE rowid=30')
     second=api.get_braking_zones(session_id,1)
     assert second['zones'][0]['minimum_speed_kph']==30
+
+
+def test_missing_speed_sample_excludes_zone_instead_of_interpolating(braking_api):
+    api,session_id=braking_api
+    path=api.repository.resolve(session_id)
+    with duckdb.connect(str(path)) as connection:
+        connection.execute('UPDATE "Ground Speed" SET value=NULL WHERE rowid=30')
+    result=api.get_braking_zones(session_id,1)
+    assert result['zones']==[]
+    assert result['excluded_intervals']['speed_coverage']==1
+
+
+def test_partial_onset_is_visible_but_not_matched(braking_api):
+    api,session_id=braking_api
+    path=api.repository.resolve(session_id)
+    with duckdb.connect(str(path)) as connection:
+        connection.execute('UPDATE "Brake Pos" SET value=100 WHERE rowid<10')
+    first=api.get_braking_zones(session_id,1)
+    assert first['zones'][0]['quality_flags']==['onset_unobserved']
+    comparison=api.compare_braking_zones(session_id,1,2)
+    assert comparison['matches']==[]
+    assert comparison['excluded_partial_zone_ids_a']==[1]
+    assert comparison['unmatched_zone_ids_b']==[1]
