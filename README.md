@@ -1,6 +1,6 @@
 # Le Mans Ultimate telemetry MCP
 
-A personal Python project for coaching from recorded LMU telemetry. The package now provides seven read-only MCP tools for session/lap discovery, summaries, distance-aligned telemetry and lap comparison. Both stdio and Streamable HTTP have local protocol coverage. The `lmu-mcp inspect` and fixed-port `lmu-mcp serve` commands are available. The Windows/ngrok launcher is still being implemented in Phase 9.
+A personal Python project for coaching from recorded LMU telemetry. The package now provides seven read-only MCP tools for session/lap discovery, summaries, distance-aligned telemetry and lap comparison. Both stdio and Streamable HTTP have local protocol coverage. The `lmu-mcp inspect` and fixed-port `lmu-mcp serve` commands are available. The Windows/ngrok launcher is included; public tunnel and ChatGPT validation remain open.
 
 ## Install for development
 
@@ -77,7 +77,7 @@ For a local MCP client supporting stdio, use the virtual-environment Python comm
 .\.venv\Scripts\python.exe -m lmu_mcp.server
 ```
 
-The server waits for MCP protocol messages on stdin; stdout is reserved for protocol responses. This is not an interactive command shell. For local Streamable HTTP, run `.\.venv\Scripts\lmu-mcp.exe serve` from the project directory. It binds only `127.0.0.1:18765` and creates a stable private path in ignored `.runtime/private-path.txt`. The server is intentionally quiet; use an MCP client to connect. The ngrok launcher is the remaining Phase 9 step. No public tunnel or ChatGPT connection has been tested yet.
+The server waits for MCP protocol messages on stdin; stdout is reserved for protocol responses. This is not an interactive command shell. For local Streamable HTTP, run `.\.venv\Scripts\lmu-mcp.exe serve` from the project directory. It binds only `127.0.0.1:18765` and creates a stable private path in ignored `.runtime/private-path.txt`. The server is intentionally quiet; use an MCP client to connect. For the Windows/ngrok command `startLeMansMCP`, read [the launcher and ChatGPT setup guide](docs/windows-launcher.md). No public tunnel or ChatGPT connection has been tested yet.
 
 See [the progressive coaching workflow](docs/progressive-querying.md) for the recommended query sequence. See [core tool contracts and methodology](docs/core-tools.md) for examples, query limits and interpretation of lap deltas.
 
