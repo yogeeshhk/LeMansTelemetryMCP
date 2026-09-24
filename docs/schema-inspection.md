@@ -156,6 +156,14 @@ Inspection date: 2026-09-23. Scope: the fixed telemetry directory in `plan.md`.
 | eventsList | eventName: VARCHAR, unit: VARCHAR | 40 | catalog/metadata | - | - |
 | metadata | key: VARCHAR, value: VARCHAR | 12 | catalog/metadata | - | - |
 
+## Phase 18 excursion-signal review (2026-09-25)
+
+The public rFactor 2 plugin header at immutable revision [`48aa12d`](https://github.com/TheIronWolfModding/rF2SharedMemoryMapPlugin/blob/48aa12dbb68849923870acd8e68044c46c3d83eb/Include/InternalsPlugin.hpp) describes `mPathLateral` as lateral position relative to a *very approximate* centre path and `mTrackEdge` as the edge relative to that path on the same side as the vehicle. This supports comparing their signed magnitudes. It does not define an official track-limit decision or the vehicle body/wheel boundary. Phase 18 therefore calls a sustained `abs(Path Lateral) > abs(Track Edge)` observation an unconfirmed path deviation.
+
+A read-only review opened all 89 current recordings. Every recording exposes both signals at 10 Hz in metres. Across 403,659 finite paired observations, their nonzero signs agreed in every sample; 18,238 samples placed the recorded vehicle centre beyond the same-side edge magnitude. Missing values, clock/source gaps, lap resets and distance reversals remain hard boundaries. The detector requires at least 0.3 seconds of sustained excess, validates monotonic lap distance, and excludes shorter runs. These observations validate the recorded sign relationship, not the physical accuracy of a circuit boundary.
+
+All 89 recordings also expose four-component `SurfaceTypes` at 5 Hz with observed numeric codes 0, 2, 4, 5 and 6. Although the public header labels surface enum values, the recorder's component-to-wheel mapping and its applicability to the current LMU build are not verified. Surface codes are retained as unknown corroborating data and do not trigger an event. GPS latitude/longitude appear at 10 Hz in degrees, but recorded traces are not accepted as Earth-coordinate circuit boundaries and no sourced polygon is available; GPS likewise cannot establish an excursion. This separation prevents a path deviation from being described as a stewarded track-limit violation.
+
 ## Phase 1 implementation and verification
 
 Phase 1 behavior is now organized in the Phase 2 package:

@@ -27,6 +27,11 @@ ALIASES = {
     "tyre_wear": ("Tyres Wear", "tyre_wear", "tire_wear"),
     "tyre_pressure": ("TyresPressure", "tyre_pressure", "tire_pressure"),
     "tyre_temperature": ("TyresCarcassTemp", "tyre_carcass_temperature", "tire_carcass_temperature"),
+    "path_lateral": ("Path Lateral", "path_lateral"),
+    "track_edge": ("Track Edge", "track_edge"),
+    "surface_types": ("SurfaceTypes", "surface_types"),
+    "gps_latitude": ("GPS Latitude", "gps_latitude"),
+    "gps_longitude": ("GPS Longitude", "gps_longitude"),
 }
 
 
