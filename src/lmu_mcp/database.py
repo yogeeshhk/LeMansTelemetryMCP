@@ -104,6 +104,15 @@ class Repository:
             raise InspectionError("unavailable", "Recording path cannot be accessed.") from exc
         return path
 
+    def revision(self, session_id: str) -> tuple:
+        """Metadata used only as a cache key; open() still checks WAL/locks first."""
+        path = self.resolve(session_id)
+        try:
+            stat = path.stat()
+        except OSError as exc:
+            raise InspectionError("unavailable", "Recording cannot be inspected right now.") from exc
+        return (str(path), stat.st_mtime_ns, stat.st_size, stat.st_ino)
+
     def discover(self) -> list[dict]:
         self._root_check()
         items = []

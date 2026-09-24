@@ -16,3 +16,7 @@ MAX_CHANNELS = 20
 MAX_LAPS_PER_REQUEST = 10
 MIN_RESOLUTION_M = 0.1
 MAX_DISTANCE_RANGE_HIGH_RES_M = 2000
+
+# Bounded process cache; entries contain data only, never open connections.
+MAX_CACHE_ENTRIES = 64
+MAX_CACHE_BYTES = 64 * 1024 * 1024

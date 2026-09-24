@@ -8,6 +8,7 @@ import math
 import numpy as np
 from . import config
 from .database import Repository, InspectionError, inspect_connection
+from .cache import AnalysisCache
 from .telemetry import Session, require
 from .analysis.laps import identify_laps, select_lap
 from .analysis.summary import lap_summary, speed_factor, control_transitions, match_onsets
@@ -74,12 +75,35 @@ def output(value):
 class TelemetryService:
     def __init__(self, repository=None):
         self.repository=repository or Repository()
+        self.cache=AnalysisCache()
 
     @contextmanager
     def session(self, session_id):
         require(isinstance(session_id,str) and 0<len(session_id)<=512,'invalid_session','Use a session ID from list_sessions.')
         with self.repository.open(session_id) as c:
-            yield Session(c,inspect_connection(c,session_id))
+            revision=self.repository.revision(session_id)
+            self.cache.activate(session_id,revision)
+            inspection_settings=(config.MAX_TABLES,config.MAX_CATALOG_ROWS)
+            inspection=self.cache.get(session_id,revision,'inspection',inspection_settings)
+            if inspection is None:
+                inspection=inspect_connection(c,session_id)
+                self.cache.put(session_id,revision,'inspection',inspection,inspection_settings)
+            session=Session(c,inspection)
+            session.cache_revision=revision
+            yield session
+
+    def _laps(self, session):
+        session_id=session.inspection.session_id
+        revision=session.cache_revision
+        settings=(config.MAX_SOURCE_SAMPLES,config.MAX_TOTAL_SOURCE_SAMPLES)
+        rows=self.cache.get(session_id,revision,'laps',settings)
+        if rows is None:
+            rows=identify_laps(session)
+            self.cache.put(session_id,revision,'laps',rows,settings)
+        return rows
+
+    def _select_lap(self, session, number):
+        return select_lap(session,number,self._laps(session))
 
     def list_sessions(self, search='', offset=0, limit=20):
         require(type(offset) is int and offset>=0 and type(limit) is int and 1<=limit<=100,'invalid_page','Use a nonnegative offset and limit from 1 to 100.')
@@ -97,7 +121,7 @@ class TelemetryService:
         with self.session(session_id) as s:
             warnings=list(s.inspection.warnings)
             duration=None;laps=None
-            try: duration=float(s.clock[-1]-s.clock[0]);laps=identify_laps(s)
+            try: duration=float(s.clock[-1]-s.clock[0]);laps=self._laps(s)
             except InspectionError as e: warnings.append(e.code+': '+str(e))
             return output({'session_id':session_id,'car':s.metadata.get('CarName'),'car_class':s.metadata.get('CarClass'),
                            'track':s.metadata.get('TrackName'),'track_layout':s.metadata.get('TrackLayout'),
@@ -125,7 +149,7 @@ class TelemetryService:
     def list_laps(self, session_id, offset=0, limit=50):
         require(type(offset) is int and offset>=0 and type(limit) is int and 1<=limit<=100,'invalid_page','Use offset >=0 and limit 1..100.')
         with self.session(session_id) as s:
-            laps=identify_laps(s)
+            laps=self._laps(s)
             speed=None;factor=None
             try: speed=s.series('speed');factor=speed_factor(speed.unit)
             except InspectionError: pass
@@ -139,13 +163,13 @@ class TelemetryService:
                            'lap_id_note':'lap is a unique interval ID in recording order; recorded_lap_number is the producer completion counter. Partial intervals are retained.'})
 
     def get_lap_summary(self, session_id, lap):
-        with self.session(session_id) as s: return output(lap_summary(s,select_lap(s,lap)))
+        with self.session(session_id) as s: return output(lap_summary(s,self._select_lap(s,lap)))
 
     def get_telemetry(self, session_id, lap, channels=None, start_distance_m=0.0, end_distance_m=None, resolution_m=2.0):
         channels=['speed','brake','throttle','steering','gear'] if channels is None else channels
         validate_grid_request(start_distance_m,end_distance_m,resolution_m,channels)
         with self.session(session_id) as s:
-            info=select_lap(s,lap);path=distance_path(s,info)
+            info=self._select_lap(s,lap);path=distance_path(s,info)
             end=float(path[1][-1]) if end_distance_m is None else end_distance_m
             grid=make_grid(start_distance_m,end,resolution_m,channels)
             result=aligned(s,info,path,grid,channels)
@@ -158,7 +182,7 @@ class TelemetryService:
         channels=['speed','brake','throttle','steering'] if channels is None else channels
         validate_grid_request(start_distance_m,end_distance_m,resolution_m,channels,len(laps))
         with self.session(session_id) as s:
-            infos=[select_lap(s,n) for n in laps]
+            infos=[self._select_lap(s,n) for n in laps]
             require(all(r['benchmark_candidate'] for r in infos),'ineligible_lap','Choose benchmark candidates from list_laps; comparisons exclude incomplete, zero-time, pit, impact and clock-gap intervals.')
             paths=[distance_path(s,r) for r in infos]
             end=min(float(path[1][-1]) for path in paths) if end_distance_m is None else end_distance_m

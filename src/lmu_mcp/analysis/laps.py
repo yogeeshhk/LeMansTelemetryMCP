@@ -56,9 +56,9 @@ def identify_laps(session):
     return rows
 
 
-def select_lap(session, number):
+def select_lap(session, number, rows=None):
     require(type(number) is int and number>0,'invalid_lap','Choose a positive lap ID from list_laps.')
-    rows=identify_laps(session)
+    rows=identify_laps(session) if rows is None else rows
     row=next((row for row in rows if row['lap']==number),None)
     require(row is not None,'unknown_lap','Lap ID is not present in this recording.')
     return row
