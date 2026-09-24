@@ -1,0 +1,242 @@
+{
+  "version": 1,
+  "track": "Circuit de la Sarthe",
+  "layout": "Circuit de la Sarthe",
+  "status": "calibrated",
+  "sources": [
+    {
+      "id": "aco-2026-lap",
+      "title": "ACO 2026 turn-by-turn circuit guide",
+      "url": "https://www.24h-lemans.com/en/news/explore-the-24-hours-of-le-mans-circuit-turn-by-turn-60679",
+      "retrieved": "2026-09-25"
+    },
+    {
+      "id": "aco-2021-map",
+      "title": "ACO 2021 24 Hours press dossier venue map",
+      "url": "https://assets.lemans.org/explorer/pdf/courses/2021/24-heures-du-mans/presse/dossier-de-presse-24-heures-du-mans-2021-GB.pdf",
+      "retrieved": "2026-09-25"
+    },
+    {
+      "id": "aco-2025-loops",
+      "title": "ACO 2025 supplementary regulations circuit map and loops",
+      "url": "https://assets.lemans.org/explorer/pdf/courses/2025/24-heures-du-mans/regulations/2025-24-hours-of-le-mans-supplementary-regulations.pdf",
+      "retrieved": "2026-09-25"
+    }
+  ],
+  "features": [
+    {
+      "feature_id": "pit-straight",
+      "name": "Pit Straight",
+      "kind": "straight",
+      "order": 1,
+      "status": "approximate",
+      "source_ids": [
+        "aco-2026-lap"
+      ],
+      "start_distance_m": 0,
+      "end_distance_m": 600,
+      "uncertainty_m": 100,
+      "distance_method": "Broad lap-start interval; 2026 ACO sequence, not an exact surveyed LMU boundary."
+    },
+    {
+      "feature_id": "dunlop-curve",
+      "name": "Dunlop Curve",
+      "kind": "corner",
+      "order": 2,
+      "status": "unmatched",
+      "source_ids": [
+        "aco-2026-lap"
+      ],
+      "character": "Fast right-hander before the Dunlop Chicane."
+    },
+    {
+      "feature_id": "dunlop-chicane",
+      "name": "Dunlop Chicane",
+      "kind": "complex",
+      "order": 3,
+      "status": "calibrated",
+      "source_ids": [
+        "aco-2026-lap"
+      ],
+      "start_distance_m": 780,
+      "end_distance_m": 950,
+      "uncertainty_m": 40,
+      "distance_method": "Two complete LMU laps show turns near 795-942 m; covers the complex, not separate apexes.",
+      "character": "Technical kerb-lined chicane."
+    },
+    {
+      "feature_id": "forest-esses",
+      "name": "Forest Esses",
+      "kind": "complex",
+      "order": 4,
+      "status": "unmatched",
+      "source_ids": [
+        "aco-2026-lap"
+      ],
+      "character": "Fast left-right sequence before Tertre Rouge."
+    },
+    {
+      "feature_id": "tertre-rouge",
+      "name": "Tertre Rouge",
+      "kind": "corner",
+      "order": 5,
+      "status": "calibrated",
+      "source_ids": [
+        "aco-2026-lap"
+      ],
+      "start_distance_m": 1495,
+      "end_distance_m": 1660,
+      "uncertainty_m": 45,
+      "distance_method": "Three complete LMU laps detect the turn near 1520-1645 m; ACO sequence places it before Mulsanne Straight.",
+      "character": "Right-hander whose exit leads onto Mulsanne Straight."
+    },
+    {
+      "feature_id": "mulsanne-straight",
+      "name": "Mulsanne Straight (Hunaudieres)",
+      "kind": "straight",
+      "order": 6,
+      "status": "approximate",
+      "source_ids": [
+        "aco-2026-lap",
+        "aco-2021-map",
+        "aco-2025-loops"
+      ],
+      "start_distance_m": 1650,
+      "end_distance_m": 7670,
+      "uncertainty_m": 100,
+      "distance_method": "Broad corridor from Tertre Rouge to the ACO 2025 i2 marker; includes both chicanes."
+    },
+    {
+      "feature_id": "daytona-chicane",
+      "name": "Daytona Chicane",
+      "kind": "complex",
+      "order": 7,
+      "status": "calibrated",
+      "source_ids": [
+        "aco-2026-lap",
+        "aco-2021-map"
+      ],
+      "start_distance_m": 4000,
+      "end_distance_m": 4200,
+      "uncertainty_m": 65,
+      "distance_method": "Three complete LMU laps show a chicane turn near 4020-4162 m; 2026 ACO names the first chicane Daytona.",
+      "character": "First chicane on Mulsanne Straight."
+    },
+    {
+      "feature_id": "michelin-chicane",
+      "name": "Michelin Chicane",
+      "kind": "complex",
+      "order": 8,
+      "status": "calibrated",
+      "source_ids": [
+        "aco-2026-lap",
+        "aco-2021-map"
+      ],
+      "start_distance_m": 5970,
+      "end_distance_m": 6160,
+      "uncertainty_m": 55,
+      "distance_method": "Three complete LMU laps show turns near 5986-6144 m; 2026 ACO names the second chicane Michelin.",
+      "character": "Second chicane on Mulsanne Straight."
+    },
+    {
+      "feature_id": "mulsanne-corner",
+      "name": "Mulsanne Corner",
+      "kind": "corner",
+      "order": 9,
+      "status": "calibrated",
+      "source_ids": [
+        "aco-2026-lap",
+        "aco-2025-loops"
+      ],
+      "start_distance_m": 7675,
+      "end_distance_m": 7800,
+      "uncertainty_m": 35,
+      "distance_method": "Three complete LMU laps detect 7696-7789 m; ACO 2025 i2 loop lies just before this end-of-straight turn.",
+      "character": "Slow right-hander at the end of Mulsanne Straight."
+    },
+    {
+      "feature_id": "indianapolis",
+      "name": "Indianapolis",
+      "kind": "corner",
+      "order": 10,
+      "status": "calibrated",
+      "source_ids": [
+        "aco-2026-lap"
+      ],
+      "start_distance_m": 9760,
+      "end_distance_m": 9910,
+      "uncertainty_m": 45,
+      "distance_method": "Three complete LMU laps detect 9782-9882 m between Mulsanne and Arnage in the ACO sequence.",
+      "character": "Fast right kink followed by a banked left turn."
+    },
+    {
+      "feature_id": "arnage",
+      "name": "Arnage",
+      "kind": "corner",
+      "order": 11,
+      "status": "calibrated",
+      "source_ids": [
+        "aco-2026-lap"
+      ],
+      "start_distance_m": 10095,
+      "end_distance_m": 10215,
+      "uncertainty_m": 35,
+      "distance_method": "Three complete LMU laps detect 10121-10202 m after Indianapolis in the ACO sequence.",
+      "character": "Slow right-hander after Indianapolis."
+    },
+    {
+      "feature_id": "porsche-curves",
+      "name": "Porsche Curves",
+      "kind": "complex",
+      "order": 12,
+      "status": "calibrated",
+      "source_ids": [
+        "aco-2026-lap",
+        "aco-2025-loops"
+      ],
+      "start_distance_m": 11475,
+      "end_distance_m": 12505,
+      "uncertainty_m": 120,
+      "distance_method": "ACO 2025 Porsche In/Out loop markers bound the complex; LMU turn detections vary, so no single-turn name.",
+      "character": "Fast right-left-right sequence."
+    },
+    {
+      "feature_id": "karting-esses",
+      "name": "Karting Esses",
+      "kind": "complex",
+      "order": 13,
+      "status": "unmatched",
+      "source_ids": [
+        "aco-2026-lap"
+      ],
+      "character": "Fast right-left sequence after the Porsche Curves."
+    },
+    {
+      "feature_id": "ford-chicanes",
+      "name": "Ford Chicanes",
+      "kind": "complex",
+      "order": 14,
+      "status": "calibrated",
+      "source_ids": [
+        "aco-2026-lap",
+        "aco-2025-loops"
+      ],
+      "start_distance_m": 13240,
+      "end_distance_m": 13485,
+      "uncertainty_m": 65,
+      "distance_method": "ACO 2025 Ford In/Out and three LMU lap detections place the closing chicanes here; individual turns vary.",
+      "character": "Two left-right chicanes near the lap end."
+    },
+    {
+      "feature_id": "motul-turn",
+      "name": "Motul Turn",
+      "kind": "corner",
+      "order": 15,
+      "status": "unmatched",
+      "source_ids": [
+        "aco-2026-lap"
+      ],
+      "character": "Final named turn before the pit straight in the 2026 ACO guide."
+    }
+  ]
+}
