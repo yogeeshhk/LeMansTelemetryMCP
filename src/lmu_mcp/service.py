@@ -16,7 +16,8 @@ from .analysis.braking import BrakingSettings, build_braking_zones, match_positi
 from .analysis.corner_metrics import automatic_ranges, corner_metrics
 from .manual_corners import load_manual_corners
 from .calibration import build_calibration_report
-from .track_knowledge import load_track_knowledge, match_detected_corners
+from .track_knowledge import load_track_knowledge, match_detected_corner, match_detected_corners
+from .analysis.excursions import ExcursionSettings, detect_path_deviations
 from dataclasses import asdict
 from .alignment import distance_path, make_grid, aligned, validate_grid_request
 
@@ -308,6 +309,206 @@ class TelemetryService:
                            'units':{'distance':'m','speed':'km/h','time':'s','steering':'%'},
                            'note':'Automatic corner IDs are per-lap ordinals; later laps match the first lap by approximate start position within 100 m. Manual IDs match exact track/layout definitions. Deltas are lap minus reference in each field unit; quality flags suppress unsupported deltas. Section time is reconstructed, not official. Differences alone do not establish driving cause.'})
 
+    def _excursion_lap(self, session, lap):
+        # Validate the complete lap path first; never sort or repair reversals.
+        self._path(session, lap)
+        lateral = session.series("path_lateral")
+        edge = session.series("track_edge")
+        distance = session.series("lap_distance")
+        require(
+            lateral.unit == edge.unit == distance.unit == "m",
+            "unknown_excursion_unit",
+            "Excursion analysis requires verified metre units for Path Lateral, Track Edge and lap distance.",
+        )
+        mask = (lateral.times >= lap["start_s"]) & (lateral.times < lap["end_s"])
+        times = lateral.times[mask]
+        require(
+            len(times) >= 2,
+            "unsupported_excursion_signals",
+            "Complete lap has insufficient Path Lateral observations.",
+        )
+        result = detect_path_deviations(
+            times,
+            session.sample("lap_distance", times),
+            lateral.values[mask],
+            session.sample("track_edge", times),
+            min(lateral.max_gap_s, edge.max_gap_s, distance.max_gap_s),
+            ExcursionSettings(),
+        )
+        result["observed_duration_s"] = float(lap["end_s"] - lap["start_s"])
+        result["coverage_fraction"] = (
+            result["coverage_s"] / result["observed_duration_s"]
+            if result["observed_duration_s"] > 0 else 0.0
+        )
+        return result
+
+    def _excursion_session(self, session_id, remaining_laps):
+        with self.session(session_id) as session:
+            laps = self._laps(session)
+            complete = [lap for lap in laps if lap["complete"]]
+            summary = {
+                "session_id": session_id,
+                "complete_laps": len(complete),
+                "partial_laps_excluded": sum(not lap["complete"] for lap in laps),
+                "analyzed_laps": 0,
+                "flagged_complete_laps": 0,
+                "unsupported_laps": [],
+            }
+            events = []
+            coverage_s = observed_s = 0.0
+            selected = complete[:remaining_laps]
+            for lap in selected:
+                try:
+                    result = self._excursion_lap(session, lap)
+                except InspectionError as error:
+                    summary["unsupported_laps"].append({"lap": lap["lap"], "code": error.code})
+                    continue
+                summary["analyzed_laps"] += 1
+                summary["flagged_complete_laps"] += int(bool(lap["flags"]))
+                coverage_s += result["coverage_s"]
+                observed_s += result["observed_duration_s"]
+                for event in result["events"]:
+                    events.append({**event, "session_id": session_id, "lap": lap["lap"],
+                                   "lap_flags": list(lap["flags"])})
+            summary["complete_laps_truncated"] = len(complete) > len(selected)
+            summary["coverage_s"] = coverage_s
+            summary["observed_duration_s"] = observed_s
+            return session.metadata, summary, events
+
+    @staticmethod
+    def _excursion_hotspots(events, pack):
+        clusters = []
+        for event in sorted(events, key=lambda item: (item["side"], item["peak_distance_m"])):
+            cluster = next((item for item in reversed(clusters)
+                            if item["side"] == event["side"]
+                            and event["peak_distance_m"] - item["last_peak_m"] <= 100), None)
+            if cluster is None:
+                cluster = {"side": event["side"], "events": [],
+                           "last_peak_m": event["peak_distance_m"]}
+                clusters.append(cluster)
+            cluster["events"].append(event)
+            cluster["last_peak_m"] = event["peak_distance_m"]
+        rows = []
+        for cluster in clusters:
+            items = cluster["events"]
+            laps = {(item["session_id"], item["lap"]) for item in items}
+            sessions = {item["session_id"] for item in items}
+            start = min(item["start_distance_m"] for item in items)
+            end = max(item["end_distance_m"] for item in items)
+            feature = match_detected_corner(
+                {"start_distance_m": start, "end_distance_m": end}, pack
+            ) if pack else None
+            examples = [{"session_id": sid, "lap": lap} for sid, lap in sorted(laps)[:5]]
+            rows.append({
+                "side": cluster["side"],
+                "start_distance_m": start,
+                "end_distance_m": end,
+                "peak_distance_m": sum(item["peak_distance_m"] for item in items) / len(items),
+                "maximum_excess_m": max(item["peak_excess_m"] for item in items),
+                "event_count": len(items),
+                "distinct_affected_laps": len(laps),
+                "distinct_affected_sessions": len(sessions),
+                "affected_lap_examples": examples,
+                "affected_lap_examples_truncated": len(laps) > len(examples),
+                "confidence": "unconfirmed_repeated" if len(laps) >= 2 else "unconfirmed_single",
+                "track_feature": ({"feature_id": feature["feature_id"], "name": feature["name"],
+                                   "status": feature["status"], "uncertainty_m": feature["uncertainty_m"]}
+                                  if feature else None),
+            })
+        rows.sort(key=lambda item: (-item["distinct_affected_laps"], -item["event_count"],
+                                    item["start_distance_m"], item["side"]))
+        for index, row in enumerate(rows, 1):
+            row["hotspot_id"] = index
+        return rows
+
+    def get_excursion_hotspots(self, session_id, scope="recent", offset=0, limit=50):
+        require(scope in ("recent", "general"), "invalid_scope",
+                "Use scope 'recent' for the selected recording or 'general' for bounded exact-layout/car history.")
+        require(type(offset) is int and offset >= 0 and type(limit) is int and 1 <= limit <= 50,
+                "invalid_page", "Use offset >= 0 and limit from 1 to 50 for excursion hotspots.")
+        with self.session(session_id) as selected_session:
+            identity = {key: selected_session.metadata.get(key)
+                        for key in ("TrackName", "TrackLayout", "CarName")}
+        require(all(isinstance(value, str) and value for value in identity.values()),
+                "missing_identity", "Track, layout and car metadata are required for excursion history.")
+        session_ids = [session_id]
+        candidates_examined = 0
+        sessions_truncated = False
+        if scope == "general":
+            discovered = sorted(self.repository.discover(),
+                                key=lambda item: (item.get("modified_ns", 0), item["session_id"]),
+                                reverse=True)
+            for item in discovered:
+                candidate = item["session_id"]
+                if candidate == session_id or item.get("status") != "discovered":
+                    continue
+                if candidates_examined >= config.MAX_EXCURSION_DISCOVERY_CANDIDATES:
+                    sessions_truncated = True
+                    break
+                candidates_examined += 1
+                try:
+                    with self.session(candidate) as other:
+                        matches = all(other.metadata.get(key) == value for key, value in identity.items())
+                except InspectionError:
+                    continue
+                if matches:
+                    if len(session_ids) >= config.MAX_EXCURSION_HISTORY_SESSIONS:
+                        sessions_truncated = True
+                        break
+                    session_ids.append(candidate)
+        events = []
+        summaries = []
+        remaining = config.MAX_EXCURSION_HISTORY_LAPS
+        laps_truncated = False
+        for current in session_ids:
+            if remaining <= 0:
+                laps_truncated = True
+                break
+            _, summary, found = self._excursion_session(current, remaining)
+            summaries.append(summary)
+            used = min(summary["complete_laps"], remaining)
+            remaining -= used
+            laps_truncated |= summary["complete_laps_truncated"]
+            events.extend(found)
+        pack = load_track_knowledge(identity["TrackName"], identity["TrackLayout"])
+        hotspots = self._excursion_hotspots(events, pack)
+        analyzed_laps = sum(item["analyzed_laps"] for item in summaries)
+        coverage_s = sum(item["coverage_s"] for item in summaries)
+        observed_s = sum(item["observed_duration_s"] for item in summaries)
+        unsupported_count = sum(len(item["unsupported_laps"]) for item in summaries)
+        status = "unsupported" if analyzed_laps == 0 else ("partial" if unsupported_count else "supported")
+        return output({
+            "session_id": session_id,
+            "scope": scope,
+            "identity": identity,
+            "status": status,
+            "hotspots": hotspots[offset:offset + limit],
+            "total": len(hotspots),
+            "next_offset": offset + limit if offset + limit < len(hotspots) else None,
+            "event_count": len(events),
+            "distinct_affected_laps": len({(event["session_id"], event["lap"]) for event in events}),
+            "distinct_affected_sessions": len({event["session_id"] for event in events}),
+            "sessions": summaries,
+            "coverage": {"analyzed_laps": analyzed_laps, "coverage_s": coverage_s,
+                         "observed_duration_s": observed_s,
+                         "fraction": coverage_s / observed_s if observed_s > 0 else 0.0},
+            "confidence": "unconfirmed_path_deviation",
+            "truncation": {
+                "candidate_sessions_examined": candidates_examined,
+                "candidate_session_limit": config.MAX_EXCURSION_DISCOVERY_CANDIDATES,
+                "matching_session_limit": config.MAX_EXCURSION_HISTORY_SESSIONS,
+                "complete_lap_limit": config.MAX_EXCURSION_HISTORY_LAPS,
+                "sessions_truncated": sessions_truncated,
+                "laps_truncated": laps_truncated,
+                "page_truncated": offset + limit < len(hotspots),
+            },
+            "corroboration": {
+                "surface_types": "not_used: component-to-wheel/current-build semantics unverified",
+                "gps": "not_used: no sourced circuit-boundary polygon",
+            },
+            "units": {"distance": "m", "time": "s"},
+            "method": "Complete laps, including flagged laps, are counted without becoming pace benchmarks. Sustained vehicle-centre Path Lateral magnitude beyond same-side Track Edge is clustered within 100 m by side. Missing data, clock/source gaps, lap resets and invalid distance paths are not bridged. Results are unconfirmed path deviations, not official track-limit violations.",
+        })
     def get_track_guide(self, session_id, offset=0, limit=50):
         require(type(offset) is int and offset>=0 and type(limit) is int and 1<=limit<=50,
                 'invalid_page','Use offset >= 0 and limit from 1 to 50 for track features.')
