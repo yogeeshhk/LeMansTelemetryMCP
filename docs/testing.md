@@ -22,3 +22,6 @@ try {
 ```
 
 Public ngrok and actual ChatGPT tests have not run; those belong to Phase 9 and require the tunnel and user setup. Test results are recorded in [plan.md](../plan.md).
+
+
+Phase 16 tests (`tests/test_phase16_coaching.py`, `tests/test_phase16_pack.py`, `tests/test_phase16_integration.py`) cover bounded evidence/applicability notes, guide independence from lap analysis, exact Spa identity, complete guide topics, split/merged association rejection, source revisions, synthetic rain/missing speed/reversal cases, and actual stdio/HTTP initialization, discovery, paged guide calls, subsequent Campus comparison and invalid requests. Synthetic intervals shifted to the Campus region test association without reproducing a private lap. These local tests do not certify wet braking targets, optimal setup, public ngrok access or actual ChatGPT response quality.
