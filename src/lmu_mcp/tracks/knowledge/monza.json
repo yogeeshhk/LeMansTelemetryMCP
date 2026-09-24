@@ -1,0 +1,334 @@
+{
+  "version": 1,
+  "track": "Autodromo Nazionale Monza",
+  "layout": "Monza Curva Grande Circuit",
+  "status": "approximate",
+  "sources": [
+    {
+      "id": "monza-operator",
+      "title": "Autodromo Nazionale Monza circuit layout and corner descriptions",
+      "url": "https://www.monzanet.it/en/circuit/",
+      "retrieved": "2026-09-25"
+    },
+    {
+      "id": "monza-2026-map",
+      "title": "Autodromo Nazionale Monza 2026 circuit map",
+      "url": "https://www.monzanet.it/wp-content/uploads/2026/01/Brochure_Hospitality_GP_2026F1.pdf",
+      "retrieved": "2026-09-25"
+    },
+    {
+      "id": "lmu-v12",
+      "title": "Le Mans Ultimate V1.2 Update 2 release notes",
+      "url": "https://guide.lemansultimate.com/hc/en-gb/articles/14556121957775-V1-2-Update-2",
+      "retrieved": "2026-09-25"
+    },
+    {
+      "id": "lmu-v131",
+      "title": "Le Mans Ultimate V1.3.1.0 Update 3 Patch 1 release notes",
+      "url": "https://guide.lemansultimate.com/hc/en-gb/articles/15678445644815-V1-3-1-0-Update-3-Patch-1",
+      "retrieved": "2026-09-25"
+    }
+  ],
+  "features": [
+    {
+      "feature_id": "start-finish-straight",
+      "name": "Start/Finish Straight",
+      "kind": "straight",
+      "order": 1,
+      "status": "approximate",
+      "start_distance_m": 0,
+      "end_distance_m": 720,
+      "uncertainty_m": 250,
+      "distance_method": "Estimated from the 5793 m operator layout and map; no usable LMU lap currently validates either boundary.",
+      "source_ids": ["monza-operator", "monza-2026-map"],
+      "character": "Part of the 1194.40 m straight between Curva Alboreto and the First Variant.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "evidence": "general_technique",
+          "text": "Use the straight to settle the car and prepare early for the largest stop on the lap. In traffic, decide on your line before braking and account for tow-assisted arrival speed. Start with a conservative visible reference and change it only after repeatable approaches; this feature range is not a braking marker.",
+          "applicability": "General technique for the exact LMU Monza Curva Grande layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred.",
+          "source_ids": ["monza-operator", "monza-2026-map"]
+        }
+      ]
+    },
+    {
+      "feature_id": "rettifilo",
+      "name": "Variante del Rettifilo (Prima Variante)",
+      "kind": "complex",
+      "order": 2,
+      "status": "approximate",
+      "start_distance_m": 650,
+      "end_distance_m": 950,
+      "uncertainty_m": 250,
+      "distance_method": "Broad estimate from official feature order and map proportions; the available LMU interval reverses and was not calibrated.",
+      "source_ids": ["monza-operator", "monza-2026-map"],
+      "character": "Tight right-left chicane ending the start straight.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "evidence": "general_technique",
+          "text": "Complete most braking with the car straight and release pressure as you turn into the right. Keep enough room to change direction for the left, then prioritise an exit that lets the steering unwind toward Biassono. Entering too deep can turn both apexes into recovery. Approach the kerbs progressively because this guide has not verified their current behaviour for your car.",
+          "applicability": "General technique for the exact LMU Monza Curva Grande layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred.",
+          "source_ids": ["monza-operator", "monza-2026-map"]
+        }
+      ]
+    },
+    {
+      "feature_id": "biassono",
+      "name": "Curva Biassono (Curva Grande)",
+      "kind": "corner",
+      "order": 3,
+      "status": "approximate",
+      "start_distance_m": 950,
+      "end_distance_m": 1750,
+      "uncertainty_m": 300,
+      "distance_method": "Estimated long right-hand corridor from the operator map; no LMU turn boundary is validated.",
+      "source_ids": ["monza-operator", "monza-2026-map"],
+      "character": "Long, large-radius right after the First Variant.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "evidence": "general_technique",
+          "text": "Carry the Rettifilo exit into the long right with small, settled steering inputs. Look through the arc and avoid scrubbing speed with repeated corrections. Let actual car balance and grip determine whether any lift is required; the real-circuit description does not prove a flat-out LMU target. Finish positioned for the Roggia braking approach.",
+          "applicability": "General technique for the exact LMU Monza Curva Grande layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred.",
+          "source_ids": ["monza-operator", "monza-2026-map"]
+        }
+      ]
+    },
+    {
+      "feature_id": "roggia",
+      "name": "Variante della Roggia (Seconda Variante)",
+      "kind": "complex",
+      "order": 4,
+      "status": "approximate",
+      "start_distance_m": 1850,
+      "end_distance_m": 2200,
+      "uncertainty_m": 250,
+      "distance_method": "Broad estimate from official feature order and map proportions; no usable LMU lap validates the range.",
+      "source_ids": ["monza-operator", "monza-2026-map"],
+      "character": "Narrow left-right chicane after the Biassono acceleration run.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "evidence": "general_technique",
+          "text": "Brake while straight and prepare for a left-right change of direction. Keep the first apex compact enough to make the right without a sharp correction, then build throttle only as the second exit opens. The following Lesmo arrives soon, so a tidy final placement matters more than forcing entry speed through the first half.",
+          "applicability": "General technique for the exact LMU Monza Curva Grande layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred.",
+          "source_ids": ["monza-operator", "monza-2026-map"]
+        }
+      ]
+    },
+    {
+      "feature_id": "lesmo-one",
+      "name": "Curva di Lesmo 1",
+      "kind": "corner",
+      "order": 5,
+      "status": "approximate",
+      "start_distance_m": 2250,
+      "end_distance_m": 2550,
+      "uncertainty_m": 250,
+      "distance_method": "Estimated from the official map and the operator's statement that Lesmo 1 follows Roggia by about 200 m; not LMU-calibrated.",
+      "source_ids": ["monza-operator", "monza-2026-map", "lmu-v12"],
+      "character": "Medium-speed right shortly after the Second Variant.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "evidence": "general_technique",
+          "text": "Move left when the Roggia exit permits and settle the car before turning right. Release the brake smoothly so the front can take a clear set, then use progressive throttle as the road opens. Avoid an early apex that forces a lift or extra steering at exit. Current track-limit behaviour must come from the running game, not an old release note.",
+          "applicability": "General technique for the exact LMU Monza Curva Grande layout; LMU V1.2 changed Lesmo track limits, so verify current limits in the running version.",
+          "source_ids": ["monza-operator", "monza-2026-map", "lmu-v12"]
+        }
+      ]
+    },
+    {
+      "feature_id": "lesmo-two",
+      "name": "Curva di Lesmo 2",
+      "kind": "corner",
+      "order": 6,
+      "status": "approximate",
+      "start_distance_m": 2600,
+      "end_distance_m": 2925,
+      "uncertainty_m": 250,
+      "distance_method": "Estimated from official order and map proportions; the operator places it about 200 m from Lesmo 1, but no LMU boundary is verified.",
+      "source_ids": ["monza-operator", "monza-2026-map", "lmu-v12"],
+      "character": "Tighter right leading onto the long Serraglio acceleration section.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "evidence": "general_technique",
+          "text": "Prepare on the left and choose an entry speed that lets the car rotate once without running out of exit. The following acceleration makes a clean, early release of steering valuable. If the car drifts wide under power, first test a slightly calmer entry and later throttle build before calling it a setup problem.",
+          "applicability": "General technique for the exact LMU Monza Curva Grande layout; LMU V1.2 changed Lesmo track limits, so verify current limits in the running version.",
+          "source_ids": ["monza-operator", "monza-2026-map", "lmu-v12"]
+        }
+      ]
+    },
+    {
+      "feature_id": "serraglio",
+      "name": "Curva del Serraglio",
+      "kind": "corner",
+      "order": 7,
+      "status": "approximate",
+      "start_distance_m": 3000,
+      "end_distance_m": 3900,
+      "uncertainty_m": 400,
+      "distance_method": "Broad estimate for the slight left and its acceleration corridor from the operator map; not a surveyed or telemetry boundary.",
+      "source_ids": ["monza-operator", "monza-2026-map"],
+      "character": "Very slight, wide-radius left between Lesmo 2 and Ascari.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "evidence": "general_technique",
+          "text": "Unwind the Lesmo 2 exit and keep the car calm through the slight left. Use the long approach to establish the Ascari braking line early, especially in a tow. Avoid unnecessary steering corrections that add scrub. Arrival speed and wind or traffic can change the next braking demand, so compare like-for-like runs when refining it.",
+          "applicability": "General technique for the exact LMU Monza Curva Grande layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred.",
+          "source_ids": ["monza-operator", "monza-2026-map"]
+        }
+      ]
+    },
+    {
+      "feature_id": "ascari",
+      "name": "Variante Ascari",
+      "kind": "complex",
+      "order": 8,
+      "status": "approximate",
+      "start_distance_m": 3900,
+      "end_distance_m": 4400,
+      "uncertainty_m": 300,
+      "distance_method": "Estimated left-right-left complex from the official map; current Monza telemetry cannot validate individual or whole-complex boundaries.",
+      "source_ids": ["monza-operator", "monza-2026-map"],
+      "character": "Wide-radius left-right-left sequence leading to the opposite straight.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "evidence": "general_technique",
+          "text": "Treat Ascari as one sequence. Brake and release into the first left while preserving a route through the right and final left. Avoid using all the road after the first apex if it leaves an abrupt second input. The final exit carries down a long straight, so judge the sequence by stability and how early you can unwind the steering, not by the first apex alone.",
+          "applicability": "General technique for the exact LMU Monza Curva Grande layout; adapt to car, grip, fuel, tyres and traffic. Current kerb behaviour is not asserted.",
+          "source_ids": ["monza-operator", "monza-2026-map"]
+        }
+      ]
+    },
+    {
+      "feature_id": "opposite-straight",
+      "name": "Opposite Straight",
+      "kind": "straight",
+      "order": 9,
+      "status": "approximate",
+      "start_distance_m": 4350,
+      "end_distance_m": 5100,
+      "uncertainty_m": 300,
+      "distance_method": "Broad context between Ascari and Curva Alboreto from the operator map; not a timing segment.",
+      "source_ids": ["monza-operator", "monza-2026-map"],
+      "character": "Long acceleration and braking approach from Ascari to Curva Alboreto.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "evidence": "general_technique",
+          "text": "Finish the Ascari exit before minimising steering on the straight. In traffic, expect the tow to alter both closing speed and the braking reference for Curva Alboreto. Complete any passing decision early enough to brake in a stable line. Preserve awareness of pit-entry traffic and cars rejoining the racing line late in a stint.",
+          "applicability": "General technique for the exact LMU Monza Curva Grande layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred.",
+          "source_ids": ["monza-operator", "monza-2026-map"]
+        }
+      ]
+    },
+    {
+      "feature_id": "alboreto",
+      "name": "Curva Alboreto (Parabolica)",
+      "kind": "corner",
+      "order": 10,
+      "status": "approximate",
+      "start_distance_m": 5000,
+      "end_distance_m": 5580,
+      "uncertainty_m": 300,
+      "distance_method": "Estimated long final right from official order, map proportions and 5793 m circuit length; no usable LMU lap validates it.",
+      "source_ids": ["monza-operator", "monza-2026-map"],
+      "character": "Long right with an opening radius leading onto the start straight.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "evidence": "general_technique",
+          "text": "Brake from the left and release into the narrower first part of the long right. Be patient with throttle until the radius opens, then build power as steering demand falls and let the car use the available exit. An entry that looks fast but delays throttle costs speed for the whole start straight. Leave margin when tyres, weather or traffic make the exit uncertain.",
+          "applicability": "General technique for the exact LMU Monza Curva Grande layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred.",
+          "source_ids": ["monza-operator", "monza-2026-map"]
+        }
+      ]
+    },
+    {
+      "feature_id": "finish-approach",
+      "name": "Finish Approach",
+      "kind": "straight",
+      "order": 11,
+      "status": "approximate",
+      "start_distance_m": 5550,
+      "end_distance_m": 5793,
+      "uncertainty_m": 200,
+      "distance_method": "Approximate closing segment from the operator's 5793 m circuit length; timing-line placement is not LMU-calibrated.",
+      "source_ids": ["monza-operator", "monza-2026-map"],
+      "character": "Closing portion of the start/finish straight after Curva Alboreto.",
+      "coaching": [
+        {
+          "topic": "driving",
+          "evidence": "general_technique",
+          "text": "Let the car finish opening its steering after Curva Alboreto and minimise scrub toward the line. In a race, use mirrors and relative closing speed before changing line. For practice, treat speed here as the consequence of the final-corner exit rather than a separate target.",
+          "applicability": "General technique for the exact LMU Monza Curva Grande layout; adapt to car, grip, fuel, tyres and traffic. No personal performance is inferred.",
+          "source_ids": ["monza-operator", "monza-2026-map"]
+        }
+      ]
+    }
+  ],
+  "coaching": [
+    {
+      "topic": "overview",
+      "evidence": "sourced",
+      "text": "Monza is a clockwise 5793 m circuit built around long acceleration sections, heavy stops and a small number of linked chicanes and long-radius corners. The official order is Rettifilo, Biassono, Roggia, the two Lesmos, Serraglio, Ascari and Curva Alboreto. Lap time depends on braking stability, clean direction changes and exits that carry along the following straight.",
+      "applicability": "Official real-circuit identity and order applied to the exact LMU Monza Curva Grande layout; no current LMU braking, gear or speed target is implied.",
+      "source_ids": ["monza-operator", "monza-2026-map"]
+    },
+    {
+      "topic": "overview",
+      "evidence": "hypothesis",
+      "text": "Every metre range in this pack is an estimated map region. The only available Monza recording contains a lap-distance reversal, so it supplied layout identity and the unsupported-path finding but no calibrated corner boundary. Do not use these ranges as braking markers or claim a measured personal result from them.",
+      "applicability": "Current exact-layout pack status. Replace estimates only after review of at least two usable laps; do not sort or repair the recorded path.",
+      "source_ids": ["monza-operator", "monza-2026-map"]
+    },
+    {
+      "topic": "setup",
+      "evidence": "general_technique",
+      "text": "Assess the car as a compromise between straight-line efficiency and confidence under braking, across kerbs and through the long final corner. Begin with the correct in-game baseline for the selected car. Test one change at a time and compare repeated runs: a lower-drag direction is useful only if braking and exits remain controllable. This is an experiment framework, not a diagnosis or a numerical prescription.",
+      "applicability": "General setup-testing method for Monza. Exact wing, spring, differential, pressure and brake values require the selected car, available controls and measured evidence.",
+      "source_ids": ["monza-operator"]
+    },
+    {
+      "topic": "setup",
+      "evidence": "sourced",
+      "text": "LMU V1.3.1.0 set a longer-gearing Monza Curva Grande default specifically for the Genesis GMR-001 LMDh. LMU V1.2 assigned a medium-downforce Monza package specifically to the Oreca 07 LMP2+ ELMS Spec. These versioned defaults show that gearing and aero applicability is car-specific; neither statement supplies a universal Monza setup.",
+      "applicability": "Only the named car and game-version contexts. Do not transfer these defaults to the recorded BMW Hypercar, GT3s or other prototypes.",
+      "source_ids": ["lmu-v12", "lmu-v131"]
+    },
+    {
+      "topic": "race",
+      "evidence": "general_technique",
+      "text": "The major braking approaches and long straights create passing chances, but a tow changes closing speed and braking demand. Plan moves before the braking phase, leave room through multi-apex chicanes and value exits when a pass cannot be completed safely. Track position at the first apex does not guarantee control of the second.",
+      "applicability": "General racecraft for the exact layout; apply current sporting rules, flags, class differences and server standards.",
+      "source_ids": ["monza-operator", "monza-2026-map"]
+    },
+    {
+      "topic": "race",
+      "evidence": "general_technique",
+      "text": "For a stint, watch repeated braking consistency, traction after the chicanes and tyre behaviour through Biassono and Curva Alboreto. Fuel load, compounds, weather, traffic and race duration are required before recommending a pit window or tyre target. No strategy timing is inferred from this guide or the single unusable recording.",
+      "applicability": "General endurance observation framework; no pit-window, tyre-life or energy-deployment number is supported.",
+      "source_ids": ["monza-operator"]
+    },
+    {
+      "topic": "practice",
+      "evidence": "general_technique",
+      "text": "First make the three main braking sequences repeatable: Rettifilo, Roggia and Ascari. Then connect each chicane's first apex to its exit without a rescue correction. Next work on Lesmo 2 and Curva Alboreto exits because their effects continue down long straights. A successful repetition feels settled under release, changes direction once and permits throttle as steering unwinds.",
+      "applicability": "General practice order for the exact layout; raise speed gradually for the selected car and conditions.",
+      "source_ids": ["monza-operator", "monza-2026-map"]
+    },
+    {
+      "topic": "practice",
+      "evidence": "hypothesis",
+      "text": "When usable telemetry becomes available, compare similar-condition benchmark laps at coarse resolution, then inspect short ranges where elapsed loss grows. Relate brake release, minimum speed and throttle pickup to the relevant sequence. Keep fuel, tyres, traffic, weather and gaps visible; a slower section alone does not establish a driver or setup fault.",
+      "applicability": "Future personal analysis only. Current Monza corner and comparison metrics remain unsupported because the recorded path reverses.",
+      "source_ids": ["monza-operator"]
+    }
+  ]
+}
