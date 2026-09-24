@@ -320,11 +320,12 @@ class TelemetryService:
             return output({'session_id':session_id,'track':track,'layout':layout,
                            'pack_status':pack['status'] if pack else 'no_pack',
                            'sources':pack['sources'] if pack else [],
+                           'coaching':pack.get('coaching',[]) if pack else [],
                            'features':features[offset:offset+limit],
                            'total':len(features),
                            'next_offset':offset+limit if offset+limit<len(features) else None,
                            'units':{'distance':'m'},
-                           'note':'Track names and character are sourced facts; distances carry calibration status and uncertainty. This guide does not establish a measured driving cause.'})
+                           'note':'Names and character are sourced; coaching notes label evidence and applicability. Distances carry calibration status and uncertainty, not braking targets. This guide does not establish a measured driving cause.'})
 
     def calibration_report(self, session_id, max_laps=5):
         return output(build_calibration_report(self, session_id, max_laps))

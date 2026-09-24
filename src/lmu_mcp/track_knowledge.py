@@ -33,6 +33,31 @@ def _distance(value, field):
     return float(value)
 
 
+def _coaching(raw, source_ids, topics, limit):
+    if type(raw) is not list or not 1 <= len(raw) <= limit:
+        _fail(f'Coaching requires 1 to {limit} notes.')
+    notes = []
+    for item in raw:
+        if type(item) is not dict:
+            _fail('Coaching note must be an object.')
+        topic = item.get('topic')
+        evidence = item.get('evidence')
+        if type(topic) is not str or topic not in topics:
+            _fail('Unsupported coaching topic.')
+        if type(evidence) is not str or evidence not in {'sourced', 'general_technique', 'hypothesis'}:
+            _fail('Unsupported coaching evidence label.')
+        refs = item.get('source_ids', [])
+        if (type(refs) is not list or len(refs) > 5
+                or any(type(ref) is not str or ref not in source_ids for ref in refs)
+                or len(set(refs)) != len(refs) or (evidence == 'sourced' and not refs)):
+            _fail('Sourced coaching requires valid source_ids; cite at most five distinct sources.')
+        notes.append({'topic': topic, 'evidence': evidence,
+                      'text': _label(item.get('text'), 'coaching text', 1000),
+                      'applicability': _label(item.get('applicability'), 'coaching applicability', 240),
+                      'source_ids': refs})
+    return notes
+
+
 def validate_pack(raw):
     """Return a normalized JSON-shaped pack; never interpret source prose as commands."""
     if type(raw) is not dict or raw.get('version') != 1 or type(raw.get('version')) is not int:
@@ -117,6 +142,9 @@ def validate_pack(raw):
                                     'start_distance_m': start, 'end_distance_m': end,
                                     'uncertainty_m': uncertainty, 'distance_method': method,
                                     'source_ids': references, 'character': note})
+        if 'coaching' in feature:
+            normalized_features[-1]['coaching'] = _coaching(
+                feature['coaching'], source_ids, {'driving'}, 3)
     ids = [item['feature_id'] for item in normalized_features]
     orders = [item['order'] for item in normalized_features]
     if len(set(ids)) != len(ids) or len(set(orders)) != len(orders) or orders != sorted(orders):
@@ -125,8 +153,12 @@ def validate_pack(raw):
     corners.sort(key=lambda item: item['start_distance_m'])
     if any(a['end_distance_m'] > b['start_distance_m'] for a, b in zip(corners, corners[1:])):
         _fail('Corner ranges must not overlap; other feature kinds may overlap.')
-    return {'version': 1, 'track': track, 'layout': layout, 'status': status,
-            'sources': normalized_sources, 'features': normalized_features}
+    result = {'version': 1, 'track': track, 'layout': layout, 'status': status,
+              'sources': normalized_sources, 'features': normalized_features}
+    if 'coaching' in raw:
+        result['coaching'] = _coaching(raw['coaching'], source_ids,
+                                       {'overview', 'setup', 'race', 'practice'}, 8)
+    return result
 
 
 def load_track_knowledge(track, layout, directory=KNOWLEDGE_DIR):
