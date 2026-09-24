@@ -1,5 +1,6 @@
 """MCP factory and stdio entry point. Windows/ngrok orchestration is a later phase."""
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from .service import TelemetryService
 from .tools.common import Runner
 from .tools import sessions,laps,telemetry
@@ -30,10 +31,18 @@ INSTRUCTIONS = (
 )
 
 
-def create_server(service=None):
+def create_server(service=None, private_path=None):
+    if private_path is not None:
+        from .private_path import validate_token
+        validate_token(private_path)
+    security=TransportSecuritySettings(enable_dns_rebinding_protection=True,
+        allowed_hosts=['127.0.0.1:*','localhost:*'],
+        allowed_origins=['http://127.0.0.1:*','http://localhost:*','https://chatgpt.com'])
     mcp=FastMCP('Le Mans Ultimate Telemetry',instructions=INSTRUCTIONS,
                 host='127.0.0.1',port=18765,stateless_http=True,json_response=True,
-                max_request_body_size=65536,log_level='WARNING')
+                max_request_body_size=65536,log_level='WARNING',
+                streamable_http_path=f'/{private_path}/mcp' if private_path else '/mcp',
+                transport_security=security)
     runner=Runner(service or TelemetryService())
     sessions.register(mcp,runner)
     laps.register(mcp,runner)

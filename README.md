@@ -1,6 +1,6 @@
 # Le Mans Ultimate telemetry MCP
 
-A personal Python project for coaching from recorded LMU telemetry. The package now provides seven read-only MCP tools for session/lap discovery, summaries, distance-aligned telemetry and lap comparison. Both stdio and Streamable HTTP have local protocol coverage. The Windows/ngrok launcher and named CLI commands remain scheduled in [plan.md](plan.md); `lmu-mcp serve` and `startLeMansMCP` are not available yet.
+A personal Python project for coaching from recorded LMU telemetry. The package now provides seven read-only MCP tools for session/lap discovery, summaries, distance-aligned telemetry and lap comparison. Both stdio and Streamable HTTP have local protocol coverage. The `lmu-mcp inspect` and fixed-port `lmu-mcp serve` commands are available. The Windows/ngrok launcher is still being implemented in Phase 9.
 
 ## Install for development
 
@@ -77,7 +77,7 @@ For a local MCP client supporting stdio, use the virtual-environment Python comm
 .\.venv\Scripts\python.exe -m lmu_mcp.server
 ```
 
-The server waits for MCP protocol messages on stdin; stdout is reserved for protocol responses. This is not an interactive command shell. The HTTP app is available through `create_server().streamable_http_app()` for integration; its default server settings are loopback port 18765. Public ngrok access and private-URL setup belong to the upcoming launcher phase. No public tunnel or ChatGPT connection has been tested yet.
+The server waits for MCP protocol messages on stdin; stdout is reserved for protocol responses. This is not an interactive command shell. For local Streamable HTTP, run `.\.venv\Scripts\lmu-mcp.exe serve` from the project directory. It binds only `127.0.0.1:18765` and creates a stable private path in ignored `.runtime/private-path.txt`. The server is intentionally quiet; use an MCP client to connect. The ngrok launcher is the remaining Phase 9 step. No public tunnel or ChatGPT connection has been tested yet.
 
 See [the progressive coaching workflow](docs/progressive-querying.md) for the recommended query sequence. See [core tool contracts and methodology](docs/core-tools.md) for examples, query limits and interpretation of lap deltas.
 
