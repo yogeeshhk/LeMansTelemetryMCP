@@ -50,7 +50,7 @@ async def check_protocol(read,write):
         initialized=await client.initialize()
         assert initialized.serverInfo.name=='Le Mans Ultimate Telemetry'
         tools=await client.list_tools()
-        expected={'list_sessions','get_session_info','list_channels','list_laps','get_lap_summary','get_telemetry','compare_laps','get_braking_zones','compare_braking_zones','get_corners','compare_corner','get_track_guide','get_excursion_hotspots'}
+        expected={'list_sessions','get_session_info','list_channels','list_laps','get_lap_summary','get_telemetry','compare_laps','get_braking_zones','compare_braking_zones','get_corners','compare_corner','get_track_guide','get_excursion_hotspots','get_corner_history'}
         assert {t.name for t in tools.tools}==expected
         for tool in tools.tools:
             assert tool.annotations.readOnlyHint is True
@@ -65,6 +65,7 @@ async def check_protocol(read,write):
                ('get_braking_zones',{'session_id':'race.duckdb','lap':1}),
                ('compare_braking_zones',{'session_id':'race.duckdb','lap_a':1,'lap_b':2}),
                ('get_track_guide',{'session_id':'race.duckdb'}),
+               ('get_corner_history',{'session_id':'race.duckdb','corner_id':1}),
                ('get_corners',{'session_id':'race.duckdb','lap':1}),
                ('compare_corner',{'session_id':'race.duckdb','corner_id':1,'laps':[1,2]})]
         for name,args in calls:
