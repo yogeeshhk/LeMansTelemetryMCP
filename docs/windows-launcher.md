@@ -8,7 +8,16 @@ From `D:\duckdbtoparquet` in PowerShell, install the Python package into the pro
 
 Run `& .\startLeMansMCP.ps1`. The script uses `.venv\Scripts\python.exe`, checks the fixed telemetry root and ports 18765 and 4040, starts the loopback server, completes an MCP handshake, then starts ngrok with the project's Host rewrite policy. It prints the full HTTPS MCP URL, including a private path, once the local ngrok API reports a tunnel. Keep the terminal open while ChatGPT uses it; press Ctrl+C to stop the server and tunnel started by this launcher. If a port is occupied, the launcher fails without killing the existing listener or choosing another port.
 
-To make `startLeMansMCP` available in future PowerShell terminals, review [the profile function](../startLeMansMCP-profile.ps1) and confirm its `D:\duckdbtoparquet` path. From this project directory, install it **once** into your PowerShell profile:
+A fresh terminal does not know the `startLeMansMCP` function until you load it. To make the command available **in this terminal only**, run the following first (it loads the function without starting the server):
+
+```powershell
+. 'D:\duckdbtoparquet\startLeMansMCP-profile.ps1'
+Get-Command startLeMansMCP
+```
+
+Then run `startLeMansMCP` when you want to start the local server and ngrok tunnel. PowerShell command names are case-insensitive; `startLemansMCP` also works after the function is loaded.
+
+To make the function available in future PowerShell terminals, review [the profile function](../startLeMansMCP-profile.ps1) and confirm its `D:\duckdbtoparquet` path. From this project directory, install it **once** into your PowerShell profile:
 
 ```powershell
 New-Item -ItemType Directory -Path (Split-Path -Parent $PROFILE) -Force | Out-Null
