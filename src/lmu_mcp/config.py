@@ -4,6 +4,7 @@ from pathlib import Path
 TELEMETRY_ROOT = Path(r"D:\Steam\steamapps\common\Le Mans Ultimate\UserData\Telemetry")
 MAX_TABLES = 512
 MAX_CATALOG_ROWS = 1024
+MAX_DISCOVERY_ENTRIES = 20_000
 
 # Baseline request bounds apply from the first public tool.
 MAX_SOURCE_SAMPLES = 2_000_000

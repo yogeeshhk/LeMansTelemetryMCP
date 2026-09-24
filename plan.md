@@ -69,6 +69,8 @@ For each small implementation step: make the change, run relevant tests/checks, 
 
 ### Progress log
 
+- Phase 5, step 2 complete: recursive discovery now scans lazily with a 20,000-entry ceiling and raises `discovery_limit` instead of returning a partial list. Junctions/symlinks still cannot escape the root. `python -m pytest tests/test_phase5_safety.py tests/test_phase1.py -q`: 24 passed after the initial scan change; the final file-type guard was then checked by the same focused suite. Query preflight and actionable budget errors remain.
+
 - Phase 5, step 1 complete: DuckDB now explicitly disables external access, extension auto-loading/installation and unsigned extensions on original read-only connections. Synthetic regression confirms all four settings are false, writes are refused and database bytes remain unchanged. `python -m pytest tests/test_phase5_safety.py tests/test_phase1.py -q`: 23 passed. Discovery and query-budget limits remain for Phase 5.
 
 - Phase 4 complete: strengthened server instructions and all seven tool descriptions for discovery, both lap summaries, coarse comparison, local delta growth and bounded detail on both laps. Added `docs/progressive-querying.md` and a linked README workflow. Actual MCP synthetic regression locates a known 2 s loss at 40-60 m and confirms it with matching 30-70 m queries; `python -m pytest tests/test_phase3_mcp.py -q`: 5 passed, including stdio/HTTP protocol and error coverage. Markdown links/fences and staged whitespace checks passed. Future corner/braking tools remain gated by Phases 12/13. No public tunnel or actual ChatGPT behavior test was performed. Phase 5 is next; Milestone 1 remains open.

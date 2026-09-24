@@ -2,6 +2,7 @@
 from contextlib import contextmanager
 import math
 import os
+from . import config
 from pathlib import Path
 
 import duckdb
@@ -105,27 +106,39 @@ class Repository:
 
     def discover(self) -> list[dict]:
         self._root_check()
-        items=[]
-        def onerror(exc):
-            raise InspectionError("directory_unavailable", "A telemetry directory could not be read; check folder permissions.") from exc
-        for directory, subdirs, filenames in os.walk(self.root, followlinks=False, onerror=onerror):
-            subdirs[:] = [d for d in subdirs if not (Path(directory)/d).is_symlink()
-                          and not (Path(directory)/d).is_junction()
-                          and (Path(directory)/d).resolve().is_relative_to(self.root)]
-            for name in filenames:
-                if Path(name).suffix.lower() != ".duckdb":
-                    continue
-                p=Path(directory)/name
-                if not p.resolve().is_relative_to(self.root):
-                    continue
-                try:
-                    stat=p.stat()
-                    wal=Path(str(p)+".wal").exists()
-                    items.append({"session_id":p.relative_to(self.root).as_posix(),"size_bytes":stat.st_size,
-                                  "modified_ns":stat.st_mtime_ns,"status":"wal_present" if wal else "discovered"})
-                except OSError:
-                    items.append({"session_id":p.relative_to(self.root).as_posix(),"status":"unavailable"})
-        return sorted(items, key=lambda item:item["session_id"])
+        items = []
+        pending = [self.root]
+        examined = 0
+        while pending:
+            directory = pending.pop()
+            try:
+                with os.scandir(directory) as entries:
+                    for entry in entries:
+                        examined += 1
+                        if examined > config.MAX_DISCOVERY_ENTRIES:
+                            raise InspectionError("discovery_limit", "Telemetry directory has too many entries to scan safely.")
+                        path = Path(entry.path)
+                        try:
+                            if entry.is_dir(follow_symlinks=False):
+                                if not path.is_junction() and path.resolve().is_relative_to(self.root):
+                                    pending.append(path)
+                                continue
+                            if path.suffix.lower() != ".duckdb":
+                                continue
+                            if not path.resolve().is_relative_to(self.root) or not path.is_file():
+                                continue
+                            stat = path.stat()
+                            wal = Path(str(path) + ".wal").exists()
+                            items.append({"session_id": path.relative_to(self.root).as_posix(),
+                                          "size_bytes": stat.st_size, "modified_ns": stat.st_mtime_ns,
+                                          "status": "wal_present" if wal else "discovered"})
+                        except OSError:
+                            if path.suffix.lower() == ".duckdb":
+                                items.append({"session_id": path.relative_to(self.root).as_posix(),
+                                              "status": "unavailable"})
+            except OSError as exc:
+                raise InspectionError("directory_unavailable", "A telemetry directory could not be read; check folder permissions.") from exc
+        return sorted(items, key=lambda item: item["session_id"])
 
     @contextmanager
     def open(self, session_id):
