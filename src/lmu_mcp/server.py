@@ -3,7 +3,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from .service import TelemetryService
 from .tools.common import Runner
-from .tools import sessions,laps,telemetry,braking,corners
+from .tools import sessions,laps,telemetry,braking,corners,track
 
 INSTRUCTIONS = (
     'Coach progressively: list_sessions -> get_session_info -> list_laps -> get_lap_summary '
@@ -28,8 +28,10 @@ INSTRUCTIONS = (
     'Compare thresholds consistently across laps. For corner questions, call get_corners on the '
     'reference lap, then compare_corner for 2-5 candidates; inspect unmatched corners, coverage '
     'and flags before short-range telemetry. Automatic corner ranges are approximate and unnamed; '
-    'manual names require exact track/layout definitions. Do not invent wheel order. Explain observed '
-    'differences separately from hypotheses and suggest a focused practice experiment, not '
+    'named curated features require exact track/layout matches and unique overlap with a measured '
+    'range. Use get_track_guide only when named context helps, and report approximate or unmatched '
+    'features honestly. Do not invent wheel order. Explain observations separately from hypotheses '
+    'and suggest a focused practice experiment, not '
     'an unsupported causal diagnosis.'
 )
 
@@ -52,6 +54,7 @@ def create_server(service=None, private_path=None):
     telemetry.register(mcp,runner)
     braking.register(mcp,runner)
     corners.register(mcp,runner)
+    track.register(mcp,runner)
     return mcp
 
 

@@ -50,7 +50,7 @@ async def check_protocol(read,write):
         initialized=await client.initialize()
         assert initialized.serverInfo.name=='Le Mans Ultimate Telemetry'
         tools=await client.list_tools()
-        expected={'list_sessions','get_session_info','list_channels','list_laps','get_lap_summary','get_telemetry','compare_laps','get_braking_zones','compare_braking_zones','get_corners','compare_corner'}
+        expected={'list_sessions','get_session_info','list_channels','list_laps','get_lap_summary','get_telemetry','compare_laps','get_braking_zones','compare_braking_zones','get_corners','compare_corner','get_track_guide'}
         assert {t.name for t in tools.tools}==expected
         for tool in tools.tools:
             assert tool.annotations.readOnlyHint is True
@@ -64,6 +64,7 @@ async def check_protocol(read,write):
                ('compare_laps',{'session_id':'race.duckdb','laps':[1,2],'channels':['speed'],'start_distance_m':20,'end_distance_m':80,'resolution_m':10}),
                ('get_braking_zones',{'session_id':'race.duckdb','lap':1}),
                ('compare_braking_zones',{'session_id':'race.duckdb','lap_a':1,'lap_b':2}),
+               ('get_track_guide',{'session_id':'race.duckdb'}),
                ('get_corners',{'session_id':'race.duckdb','lap':1}),
                ('compare_corner',{'session_id':'race.duckdb','corner_id':1,'laps':[1,2]})]
         for name,args in calls:
@@ -191,3 +192,29 @@ async def test_braking_tools_return_known_zone_and_validation_error(recording):
                 invalid=await client.call_tool('get_braking_zones',
                                                {'session_id':'race.duckdb','lap':1,'onset_pct':4,'release_pct':5})
                 assert invalid.isError and 'invalid_threshold' in invalid.content[0].text
+
+
+@pytest.mark.anyio
+async def test_sourced_track_guide_over_http(recording, monkeypatch):
+    from lmu_mcp.track_knowledge import validate_pack
+    pack=validate_pack({'version':1,'track':'Synthetic','layout':'Test',
+        'status':'calibrated','sources':[{'id':'map','title':'Synthetic map',
+        'url':'https://example.org/map','retrieved':'2026-09-24'}],
+        'features':[{'feature_id':'turn-one','name':'Turn One','kind':'corner',
+        'order':1,'status':'calibrated','start_distance_m':20,
+        'end_distance_m':50,'uncertainty_m':5,
+        'distance_method':'Reviewed synthetic lap','source_ids':['map']}]})
+    monkeypatch.setattr('lmu_mcp.service.load_track_knowledge',
+                        lambda track,layout:pack)
+    async with http_server(recording) as url:
+        async with streamable_http_client(url) as (read,write,_):
+            async with ClientSession(read,write) as client:
+                await client.initialize()
+                guide=await client.call_tool('get_track_guide',
+                                             {'session_id':'race.duckdb'})
+                assert not guide.isError
+                assert guide.structuredContent['features'][0]['name']=='Turn One'
+                assert guide.structuredContent['sources'][0]['url']=='https://example.org/map'
+                invalid=await client.call_tool('get_track_guide',
+                                               {'session_id':'race.duckdb','limit':51})
+                assert invalid.isError

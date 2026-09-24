@@ -16,6 +16,7 @@ from .analysis.braking import BrakingSettings, build_braking_zones, match_positi
 from .analysis.corner_metrics import automatic_ranges, corner_metrics
 from .manual_corners import load_manual_corners
 from .calibration import build_calibration_report
+from .track_knowledge import load_track_knowledge, match_detected_corner
 from dataclasses import asdict
 from .alignment import distance_path, make_grid, aligned, validate_grid_request
 
@@ -203,7 +204,10 @@ class TelemetryService:
     def _corners(self, session, lap):
         manual=load_manual_corners(session.metadata.get('TrackName'),
                                    session.metadata.get('TrackLayout'))
-        definition_key=json.dumps(manual,sort_keys=True) if manual is not None else None
+        pack=(load_track_knowledge(session.metadata.get('TrackName'),
+                                   session.metadata.get('TrackLayout'))
+              if manual is None else None)
+        definition_key=json.dumps({'manual':manual,'pack':pack},sort_keys=True)
         session_id=session.inspection.session_id
         revision=session.cache_revision
         budget=(config.MAX_SOURCE_SAMPLES,config.MAX_TOTAL_SOURCE_SAMPLES)
@@ -218,9 +222,22 @@ class TelemetryService:
                 ranges,spacing=automatic_ranges(session,lap,path)
                 source='automatic'
             rows=[corner_metrics(session,lap,path,row) for row in ranges]
+            if pack is not None:
+                sources={item['id']:item for item in pack['sources']}
+                for row in rows:
+                    feature=match_detected_corner(row,pack)
+                    if feature is not None:
+                        row['name']=feature['name']
+                        row['track_feature']={
+                            'feature_id':feature['feature_id'],
+                            'status':feature['status'],
+                            'uncertainty_m':feature['uncertainty_m'],
+                            'distance_method':feature['distance_method'],
+                            'character':feature['character'],
+                            'sources':[sources[source_id] for source_id in feature['source_ids']]}
             cached={'corners':rows,'definition_source':source,
                     'automatic_resolution_m':spacing,
-                    'method':'Manual track/layout definitions override automatic detection. Automatic ranges require sustained steering percent and lateral G on a validated distance grid; minimum speed estimates the apex. Section timing and controls are approximate; null or quality flags mean unsupported coverage.'}
+                    'method':'User manual definitions override automatic detection and curated names. Curated names attach only to uniquely overlapping measured ranges; their calibration status and sources are explicit. Automatic ranges require sustained steering percent and lateral G; minimum speed estimates the apex. Section timing and controls are approximate; null or quality flags mean unsupported coverage.'}
             self.cache.put(session_id,revision,'corners',cached,lap['lap'],definition_key,budget)
         return cached
 
@@ -291,6 +308,23 @@ class TelemetryService:
                            'definition_source':reference_result['definition_source'],
                            'units':{'distance':'m','speed':'km/h','time':'s','steering':'%'},
                            'note':'Automatic corner IDs are per-lap ordinals; later laps match the first lap by approximate start position within 100 m. Manual IDs match exact track/layout definitions. Deltas are lap minus reference in each field unit; quality flags suppress unsupported deltas. Section time is reconstructed, not official. Differences alone do not establish driving cause.'})
+
+    def get_track_guide(self, session_id, offset=0, limit=50):
+        require(type(offset) is int and offset>=0 and type(limit) is int and 1<=limit<=50,
+                'invalid_page','Use offset >= 0 and limit from 1 to 50 for track features.')
+        with self.session(session_id) as session:
+            track=session.metadata.get('TrackName')
+            layout=session.metadata.get('TrackLayout')
+            pack=load_track_knowledge(track,layout)
+            features=pack['features'] if pack else []
+            return output({'session_id':session_id,'track':track,'layout':layout,
+                           'pack_status':pack['status'] if pack else 'no_pack',
+                           'sources':pack['sources'] if pack else [],
+                           'features':features[offset:offset+limit],
+                           'total':len(features),
+                           'next_offset':offset+limit if offset+limit<len(features) else None,
+                           'units':{'distance':'m'},
+                           'note':'Track names and character are sourced facts; distances carry calibration status and uncertainty. This guide does not establish a measured driving cause.'})
 
     def calibration_report(self, session_id, max_laps=5):
         return output(build_calibration_report(self, session_id, max_laps))

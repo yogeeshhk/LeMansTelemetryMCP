@@ -1,6 +1,6 @@
 # Le Mans Ultimate telemetry MCP
 
-A personal Python project for coaching from recorded LMU telemetry. The package provides eleven read-only MCP tools for session/lap discovery, summaries, distance-aligned telemetry and lap comparison. Both stdio and Streamable HTTP have local protocol coverage. The `lmu-mcp inspect` and fixed-port `lmu-mcp serve` commands are available. The Windows/ngrok launcher and local diagnostics command are included. Public tunnel and ChatGPT validation remain open.
+A personal Python project for coaching from recorded LMU telemetry. The package provides twelve read-only MCP tools for session/lap discovery, summaries, distance-aligned telemetry and lap comparison. Both stdio and Streamable HTTP have local protocol coverage. The `lmu-mcp inspect` and fixed-port `lmu-mcp serve` commands are available. The Windows/ngrok launcher and local diagnostics command are included. Public tunnel and ChatGPT validation remain open.
 
 ## Install for development
 
@@ -111,10 +111,11 @@ For a local client that supports **Streamable HTTP**, start `.\.venv\Scripts\lmu
 | `get_telemetry` | Inspect a short distance range with selected channels and shared distance samples. |
 | `get_braking_zones` | Detect sustained braking events on one lap, with position, speed, peak brake, ABS and throttle pickup. |
 | `compare_braking_zones` | Match two candidate laps by brake-start position and report A-minus-B differences and unmatched zones. |
-| `get_corners` | Discover approximate unnamed turns, or use exact track/layout manual definitions; page through per-corner metrics. |
+| `get_track_guide` | Read paged, sourced features for an exact track/layout; `no_pack` is explicit when no reviewed guide exists. |
+| `get_corners` | Discover approximate turns, or use exact manual definitions; uniquely matched sourced names carry provenance and confidence. |
 | `compare_corner` | Compare one discovered corner across 2-5 candidate laps with quality-aware metric differences. |
 
-Use `list_sessions`, then `get_session_info` and `list_laps`, then summaries, a coarse `compare_laps`, and short-range `get_telemetry` calls. For example, compare two eligible laps at 20 m spacing, find where their elapsed-time delta grows, then inspect both laps over the same 200-500 m section at 1-2 m spacing. A positive A-minus-B elapsed delta means the first requested lap is slower at that distance. For braking questions, use `get_braking_zones` on each lap and `compare_braking_zones`. For corner questions, call `get_corners` on the reference lap, then `compare_corner` with its returned ID and 2-5 candidate laps. Inspect missing matches and quality flags before a detailed telemetry query. See [the progressive coaching workflow](docs/progressive-querying.md) and [core tool contracts](docs/core-tools.md) for arguments, units and the numerical method.
+Use `list_sessions`, then `get_session_info` and `list_laps`, then summaries, a coarse `compare_laps`, and short-range `get_telemetry` calls. For example, compare two eligible laps at 20 m spacing, find where their elapsed-time delta grows, then inspect both laps over the same 200-500 m section at 1-2 m spacing. A positive A-minus-B elapsed delta means the first requested lap is slower at that distance. For braking questions, use `get_braking_zones` on each lap and `compare_braking_zones`. For corner questions, optionally call `get_track_guide` for named context, then `get_corners` on the reference lap and `compare_corner` with its returned ID and 2-5 candidate laps. Inspect missing matches and quality flags before a detailed telemetry query. See [the progressive coaching workflow](docs/progressive-querying.md) and [core tool contracts](docs/core-tools.md) for arguments, units and the numerical method.
 
 Questions to try in an MCP-enabled coaching chat:
 
@@ -124,7 +125,7 @@ Questions to try in an MCP-enabled coaching chat:
 - "Look closely at the braking section between 5200 m and 5450 m on two comparable laps."
 - "Compare brake point, apex speed and throttle pickup at corner 7 across my fastest candidate laps; tell me if the corner is unnamed or unmatched."
 
-Braking and corner tools find approximate events and compare their positions; they cannot certify a driving fault. Automatic corners are unnamed. A corner name requires a matching manual track/layout definition in [`src/lmu_mcp/tracks/`](src/lmu_mcp/tracks/README.md). Ask for observations, uncertainty and a focused practice experiment rather than a definitive driving fault.
+Braking and corner tools find approximate events and compare their positions; they cannot certify a driving fault. Automatic corners remain unnamed unless a uniquely matched, reviewed local track pack supplies a sourced name; exact user manual definitions still take precedence. The [track-knowledge guide](src/lmu_mcp/tracks/knowledge/README.md) explains pack authoring and local calibration. No real named pack is active yet. Ask for observations, uncertainty and a focused practice experiment rather than a definitive driving fault.
 
 ## Limits, interpretation and privacy
 
