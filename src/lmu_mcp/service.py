@@ -11,7 +11,7 @@ from .database import Repository, InspectionError, inspect_connection
 from .telemetry import Session, require
 from .analysis.laps import identify_laps, select_lap
 from .analysis.summary import lap_summary, speed_factor, control_transitions, match_onsets
-from .alignment import distance_path, make_grid, aligned
+from .alignment import distance_path, make_grid, aligned, validate_grid_request
 
 
 def serializable(value):
@@ -103,6 +103,7 @@ class TelemetryService:
 
     def get_telemetry(self, session_id, lap, channels=None, start_distance_m=0.0, end_distance_m=None, resolution_m=2.0):
         channels=['speed','brake','throttle','steering','gear'] if channels is None else channels
+        validate_grid_request(start_distance_m,end_distance_m,resolution_m,channels)
         with self.session(session_id) as s:
             info=select_lap(s,lap);path=distance_path(s,info)
             end=float(path[1][-1]) if end_distance_m is None else end_distance_m
@@ -115,6 +116,7 @@ class TelemetryService:
         require(isinstance(laps,list) and all(type(n) is int for n in laps) and 2<=len(laps)<=config.MAX_LAPS_PER_REQUEST and len(set(laps))==len(laps),
                 'invalid_laps','Compare 2 to 10 distinct lap IDs.')
         channels=['speed','brake','throttle','steering'] if channels is None else channels
+        validate_grid_request(start_distance_m,end_distance_m,resolution_m,channels,len(laps))
         with self.session(session_id) as s:
             infos=[select_lap(s,n) for n in laps]
             require(all(r['benchmark_candidate'] for r in infos),'ineligible_lap','Choose benchmark candidates from list_laps; comparisons exclude incomplete, zero-time, pit, impact and clock-gap intervals.')

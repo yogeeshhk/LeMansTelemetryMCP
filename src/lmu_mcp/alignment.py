@@ -19,19 +19,35 @@ def distance_path(session, lap):
     return times,distances,signal.max_gap_s
 
 
+def validate_grid_request(start, end, resolution, channels, lap_count=1):
+    """Reject unbounded requests before opening a recording when the end is known."""
+    values = (start, resolution) if end is None else (start, end, resolution)
+    require(all(isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x) for x in values),
+            'invalid_range', 'Distance and resolution must be finite numbers.')
+    require(0 <= start < 200000 and (end is None or start < end <= 200000),
+            'invalid_range', 'Use 0 <= start_distance_m < end_distance_m <= 200000.')
+    require(resolution >= config.MIN_RESOLUTION_M, 'query_limit',
+            'Increase resolution_m to at least 0.1 m for fewer samples.')
+    require(isinstance(channels, list) and all(isinstance(c, str) for c in channels)
+            and 1 <= len(channels) <= config.MAX_CHANNELS and len(set(channels)) == len(channels),
+            'query_limit', 'Request 1 to 20 distinct channels; reduce the channel count.')
+    require(all(0 < len(c) <= 128 for c in channels),
+            'invalid_channel', 'Channel names must be nonempty strings of at most 128 characters.')
+    require(type(lap_count) is int and 1 <= lap_count <= config.MAX_LAPS_PER_REQUEST,
+            'query_limit', 'Compare at most 10 laps at a time.')
+    if end is None:
+        return None
+    require(resolution >= 1 or end-start <= config.MAX_DISTANCE_RANGE_HIGH_RES_M,
+            'query_limit', 'For sub-metre resolution, query at most 2000 metres; select one section or corner at a time.')
+    count = math.floor((end-start)/resolution+1e-8)+1
+    cells = count*(lap_count*(len(channels)+1)+1+(2*(lap_count-1) if lap_count>1 else 0))
+    require(count <= config.MAX_OUTPUT_SAMPLES and cells <= config.MAX_OUTPUT_VALUES,
+            'query_limit', 'Request fewer channels/laps, a shorter range (one corner at a time), or increase resolution_m for fewer samples. Maximum 5000 points and 20000 total numeric values.')
+    return count
+
+
 def make_grid(start, end, resolution, channels, lap_count=1):
-    require(all(isinstance(x,(int,float)) and not isinstance(x,bool) and math.isfinite(x) for x in (start,end,resolution)),
-            'invalid_range','Distance and resolution must be finite numbers.')
-    require(0<=start<end<=200000,'invalid_range','Use 0 <= start_distance_m < end_distance_m <= 200000.')
-    require(resolution>=config.MIN_RESOLUTION_M,'query_limit','Increase resolution_m to at least 0.1 m.')
-    require(isinstance(channels,list) and all(isinstance(c,str) for c in channels) and 1<=len(channels)<=config.MAX_CHANNELS and len(set(channels))==len(channels),
-            'query_limit','Request 1 to 20 distinct channels.')
-    require(all(isinstance(c,str) and 0<len(c)<=128 for c in channels),'invalid_channel','Channel names must be nonempty strings of at most 128 characters.')
-    require(resolution>=1 or end-start<=config.MAX_DISTANCE_RANGE_HIGH_RES_M,'query_limit','For sub-metre resolution, query at most 2000 metres at a time.')
-    count=math.floor((end-start)/resolution+1e-8)+1
-    cells=count*(lap_count*(len(channels)+1)+1+(2*(lap_count-1) if lap_count>1 else 0))
-    require(count<=config.MAX_OUTPUT_SAMPLES and cells<=config.MAX_OUTPUT_VALUES,'query_limit',
-            'Request fewer channels/laps, a shorter distance range, or increase resolution_m (coarser spacing). Maximum 5000 points and 20000 total numeric values.')
+    count = validate_grid_request(start, end, resolution, channels, lap_count)
     return float(start)+np.arange(count,dtype=float)*float(resolution)
 
 

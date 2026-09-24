@@ -67,14 +67,16 @@ Basic brake/throttle onsets are first recorded samples reaching 5% after being b
 
 ## Bounds and errors
 
-- Pagination: 1-100 session/lap records per page.
+- Recursive discovery examines at most 20,000 directory entries; exceeding that limit raises `discovery_limit` without returning a partial list. Pagination: 1-100 session/lap records per page.
 - Telemetry: 1-20 distinct channel selectors; comparison: 2-10 distinct lap IDs.
-- At most 5000 distance points and 20000 estimated numeric grid values per request, counting compared laps and deltas.
+- At most 5000 distance points and 20000 estimated numeric grid values per request, counting compared laps and deltas. Explicitly bounded requests are checked before the recording is opened; requests using the default end are checked once lap coverage is known.
 - Minimum spacing 0.1 m; requests finer than 1 m cover at most 2000 m.
 - At most 2 million source rows per signal read and 10 million across a request. These bound local processing; full source arrays are never sent automatically to the model.
 - Responses are limited to 300 KB, including both SDK text and structured content with envelope allowance. Request fewer channels/laps, a shorter range or **larger** `resolution_m` (coarser spacing) when rejected.
 - Control-onset lists retain at most 50 entries per control/lap with `total` and `truncated` fields. Telemetry arrays are never silently truncated.
 - Two analysis workers execute off the async transport loop. Connections and per-request caches are closed/discarded after a call; cross-request caching belongs to its later phase.
+
+The original DuckDB is opened read-only with external access and extension auto-loading/installation disabled. SQL values are parameterized, and dynamic table/column names come only from inspected base-table schemas. No arbitrary SQL tool is exposed.
 
 Inputs have typed MCP schemas. Tool errors carry a stable code/message (for example `query_limit`, `sample_count_mismatch`, `wal_present`, `ineligible_lap`); unexpected internal exceptions return a generic error without SQL, paths or tracebacks. Tools have read-only, non-destructive annotations, backed by read-only database access and path confinement.
 
