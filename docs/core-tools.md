@@ -88,4 +88,4 @@ Inputs have typed MCP schemas. Tool errors carry a stable code/message (for exam
 
 `python -m lmu_mcp.server` serves stdio. `create_server()` also supplies a Streamable HTTP app with loopback settings for port 18765 and Host/Origin validation. Tests exercise actual client initialization, discovery, all seven calls and errors over both protocols; HTTP tests use an internal ephemeral port to avoid occupying the planned service port.
 
-`lmu-mcp serve` now binds port 18765, validates its availability and uses an ignored stable private path. The ngrok launcher and public/ChatGPT verification remain Phase 9 work.
+`lmu-mcp serve` now binds port 18765, validates its availability and uses an ignored stable private path. The Windows/ngrok launcher is implemented and locally tested; public ngrok and actual ChatGPT verification remain open. See [the launcher guide](windows-launcher.md).
