@@ -4,6 +4,7 @@ import math
 import numpy as np
 
 from ..telemetry import require
+from ..database import InspectionError
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,7 @@ def detect_intervals(times, brake_pct, max_gap_s, settings: BrakingSettings):
             return
         duration = float(times[index] - times[start])
         if duration >= settings.min_duration_s and peak >= settings.min_peak_pct:
+            require(len(intervals) < 128, 'zone_limit', 'Recording has too many braking zones for one lap.')
             intervals.append({'start_time_s': float(times[start]),
                               'end_time_s': float(times[index]),
                               'peak_brake_pct': float(peak),
@@ -128,3 +130,144 @@ def match_positions(zones_a, zones_b, max_distance_m=100.0):
     used_a = {i for i, _ in pairs}
     used_b = {j for _, j in pairs}
     return pairs, [i for i in range(n) if i not in used_a], [j for j in range(m) if j not in used_b]
+
+
+def _clock_gap_between(session, start, end):
+    clock = session.clock
+    gaps = np.diff(clock) > session.clock_gap_limit
+    return bool(np.any(gaps & (clock[:-1] < end) & (clock[1:] > start)))
+
+
+def _distance_at(session, path, timestamp):
+    times, distances, gap_limit = path
+    index = int(np.searchsorted(times, timestamp, side='left'))
+    if index < len(times) and abs(times[index] - timestamp) <= 1e-8:
+        return float(distances[index])
+    if index == 0 or index == len(times):
+        return None
+    left = index - 1
+    if times[index] - times[left] > gap_limit or _clock_gap_between(session, timestamp, timestamp):
+        return None
+    fraction = (timestamp - times[left]) / (times[index] - times[left])
+    return float(distances[left] + fraction * (distances[index] - distances[left]))
+
+
+def _abs_usage(session, signal, start, end):
+    if signal is None:
+        return None, 0.0
+    inside = (signal.times > start) & (signal.times < end)
+    points = np.r_[start, signal.times[inside], end]
+    values = session.sample('abs', points[:-1])
+    durations = np.diff(points)
+    covered = np.isfinite(values) & (durations <= signal.max_gap_s)
+    return float(durations[covered & (values > 0)].sum()), float(durations[covered].sum())
+
+
+def _throttle_pickup(session, signal, path, end_time, end_distance, next_start):
+    if signal is None:
+        return None
+    deadline = min(float(session.clock[-1]), end_time + 5.0, next_start)
+    if deadline < end_time:
+        return None
+    candidate_times = np.r_[end_time, signal.times[(signal.times > end_time) & (signal.times <= deadline)]]
+    for timestamp in candidate_times:
+        if _clock_gap_between(session, end_time, float(timestamp)):
+            break
+        value = session.sample('throttle', [timestamp])[0]
+        if not np.isfinite(value):
+            break
+        distance = _distance_at(session, path, float(timestamp))
+        if distance is None or distance > end_distance + 250:
+            break
+        if value >= 5:
+            return {'distance_m': distance, 'delay_s': float(timestamp - end_time)}
+    return None
+
+
+def build_braking_zones(session, lap, path, settings: BrakingSettings):
+    """Enrich native brake events only when speed and distance coverage support them."""
+    settings.validate()
+    brake = session.series('brake')
+    require(brake.unit == '%', 'unknown_brake_unit',
+            'Braking-zone analysis requires verified percentage brake units.')
+    speed = session.series('speed')
+    from .summary import speed_factor
+    factor = speed_factor(speed.unit)
+    require(factor is not None, 'unknown_speed_unit',
+            'Braking-zone analysis requires verified km/h or m/s speed units.')
+    mask = (brake.times >= lap['start_s']) & (brake.times < lap['end_s'])
+    intervals = detect_intervals(brake.times[mask], brake.values[mask], brake.max_gap_s, settings)
+    try:
+        abs_signal = session.series('abs') if 'abs' in session.sources else None
+    except InspectionError:
+        abs_signal = None
+    try:
+        throttle_signal = session.series('throttle') if 'throttle' in session.sources else None
+    except InspectionError:
+        throttle_signal = None
+    if throttle_signal is not None and throttle_signal.unit != '%':
+        throttle_signal = None
+    warnings = []
+    if abs_signal is None:
+        warnings.append('ABS signal unavailable; active time is null.')
+    if throttle_signal is None:
+        warnings.append('Verified percentage throttle unavailable; pickup is null.')
+    skipped = {'distance_or_clock_gap': 0, 'speed_coverage': 0, 'insufficient_speed_drop': 0}
+    zones = []
+    for i, interval in enumerate(intervals):
+        start = interval['start_time_s']
+        end = interval['end_time_s']
+        if _clock_gap_between(session, start, end):
+            skipped['distance_or_clock_gap'] += 1
+            continue
+        start_distance = _distance_at(session, path, start)
+        end_distance = _distance_at(session, path, end)
+        if start_distance is None or end_distance is None or end_distance < start_distance:
+            skipped['distance_or_clock_gap'] += 1
+            continue
+        speed_times = np.r_[start, speed.times[(speed.times > start) & (speed.times < end)], end]
+        if np.any(np.diff(speed_times) > speed.max_gap_s):
+            skipped['speed_coverage'] += 1
+            continue
+        speeds = session.sample('speed', speed_times) * factor
+        if not np.isfinite(speeds).all():
+            skipped['speed_coverage'] += 1
+            continue
+        initial_speed = float(speeds[0])
+        minimum_speed = float(np.min(speeds))
+        if initial_speed - minimum_speed < settings.min_speed_drop_kph:
+            skipped['insufficient_speed_drop'] += 1
+            continue
+        abs_active, abs_coverage = _abs_usage(session, abs_signal, start, end)
+        next_start = intervals[i + 1]['start_time_s'] if i + 1 < len(intervals) else lap['end_s']
+        pickup = (_throttle_pickup(session, throttle_signal, path, end, end_distance, next_start)
+                  if interval['release_observed'] else None)
+        flags = []
+        if not interval['onset_observed']:
+            flags.append('onset_unobserved')
+        if not interval['release_observed']:
+            flags.append('release_unobserved')
+        zones.append({
+            'zone': len(zones) + 1,
+            'start_distance_m': start_distance,
+            'end_distance_m': end_distance,
+            'braking_distance_m': end_distance - start_distance,
+            'initial_speed_kph': initial_speed,
+            'minimum_speed_kph': minimum_speed,
+            'speed_drop_kph': initial_speed - minimum_speed,
+            'peak_brake_pct': interval['peak_brake_pct'],
+            'duration_s': end - start,
+            'abs_active_time_s': abs_active,
+            'abs_coverage_s': abs_coverage,
+            'throttle_pickup_distance_m': pickup['distance_m'] if pickup else None,
+            'throttle_pickup_delay_s': pickup['delay_s'] if pickup else None,
+            'start_time_s': start,
+            'end_time_s': end,
+            'onset_observed': interval['onset_observed'],
+            'release_observed': interval['release_observed'],
+            'quality_flags': flags,
+        })
+    if any(skipped.values()):
+        warnings.append('Some brake intervals were excluded for unsupported distance, timing or speed coverage, or insufficient speed drop.')
+    return {'zones': zones, 'detected_brake_intervals': len(intervals),
+            'excluded_intervals': skipped, 'warnings': warnings}

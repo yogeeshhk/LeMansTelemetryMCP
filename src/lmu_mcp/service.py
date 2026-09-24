@@ -12,6 +12,8 @@ from .cache import AnalysisCache
 from .telemetry import Session, require
 from .analysis.laps import identify_laps, select_lap
 from .analysis.summary import lap_summary, speed_factor, control_transitions, match_onsets
+from .analysis.braking import BrakingSettings, build_braking_zones, match_positions
+from dataclasses import asdict
 from .alignment import distance_path, make_grid, aligned, validate_grid_request
 
 
@@ -125,6 +127,75 @@ class TelemetryService:
             result=aligned(session,lap,path,grid,channels)
             self.cache.put(session_id,revision,'aligned',result,*parts)
         return result
+
+    def _braking_zones(self, session, lap, settings):
+        session_id=session.inspection.session_id
+        revision=session.cache_revision
+        budget=(config.MAX_SOURCE_SAMPLES,config.MAX_TOTAL_SOURCE_SAMPLES)
+        cached=self.cache.get(session_id,revision,'braking_zones',lap['lap'],settings,budget)
+        if cached is None:
+            cached=build_braking_zones(session,lap,self._path(session,lap),settings)
+            self.cache.put(session_id,revision,'braking_zones',cached,lap['lap'],settings,budget)
+        return cached
+
+    def get_braking_zones(self, session_id, lap, onset_pct=10.0, release_pct=5.0,
+                          min_duration_s=0.3, min_peak_pct=20.0, min_speed_drop_kph=5.0):
+        settings=BrakingSettings(onset_pct,release_pct,min_duration_s,min_peak_pct,
+                                 min_speed_drop_kph).validate()
+        with self.session(session_id) as session:
+            selected=self._select_lap(session,lap)
+            result=self._braking_zones(session,selected,settings)
+            return output({'session_id':session_id,'lap':lap,'lap_quality':selected,
+                           'thresholds':asdict(settings),**result,
+                           'method':'Native brake samples use onset/release hysteresis; events need minimum duration, peak and speed drop. Distance uses the validated monotonic lap path. No large clock/source gaps are bridged. ABS is positive-state time over covered intervals. Throttle pickup is the first >=5% sample within 5 s and 250 m after release, before the next brake interval. Incomplete onset/release is flagged.'})
+
+    def compare_braking_zones(self, session_id, lap_a, lap_b, onset_pct=10.0,
+                              release_pct=5.0, min_duration_s=0.3, min_peak_pct=20.0,
+                              min_speed_drop_kph=5.0, max_match_distance_m=100.0):
+        settings=BrakingSettings(onset_pct,release_pct,min_duration_s,min_peak_pct,
+                                 min_speed_drop_kph).validate()
+        require(type(lap_a) is int and type(lap_b) is int and lap_a>0 and lap_b>0 and lap_a!=lap_b,
+                'invalid_laps','Choose two distinct positive lap IDs from list_laps.')
+        require(type(max_match_distance_m) in (int,float) and math.isfinite(max_match_distance_m)
+                and 10<=max_match_distance_m<=300,'invalid_match_range',
+                'Use max_match_distance_m from 10 to 300 metres.')
+        with self.session(session_id) as session:
+            first=self._select_lap(session,lap_a)
+            second=self._select_lap(session,lap_b)
+            require(first['benchmark_candidate'] and second['benchmark_candidate'],
+                    'ineligible_lap','Choose benchmark candidates from list_laps for braking-zone comparison.')
+            result_a=self._braking_zones(session,first,settings)
+            result_b=self._braking_zones(session,second,settings)
+            eligible_a=[z for z in result_a['zones'] if not z['quality_flags']]
+            eligible_b=[z for z in result_b['zones'] if not z['quality_flags']]
+            pairs,unmatched_a,unmatched_b=match_positions(eligible_a,eligible_b,max_match_distance_m)
+            def delta(a,b,key):
+                left,right=a[key],b[key]
+                return left-right if left is not None and right is not None else None
+            matches=[]
+            for i,j in pairs:
+                a,b=eligible_a[i],eligible_b[j]
+                matches.append({'zone_a':a['zone'],'zone_b':b['zone'],
+                                'a':a,'b':b,
+                                'a_minus_b':{
+                                    'brake_start_m':delta(a,b,'start_distance_m'),
+                                    'braking_distance_m':delta(a,b,'braking_distance_m'),
+                                    'initial_speed_kph':delta(a,b,'initial_speed_kph'),
+                                    'minimum_speed_kph':delta(a,b,'minimum_speed_kph'),
+                                    'peak_brake_pct':delta(a,b,'peak_brake_pct'),
+                                    'brake_release_m':delta(a,b,'end_distance_m'),
+                                    'throttle_pickup_m':delta(a,b,'throttle_pickup_distance_m'),
+                                    'abs_active_time_s':delta(a,b,'abs_active_time_s')}})
+            return output({'session_id':session_id,'lap_a':lap_a,'lap_b':lap_b,
+                           'thresholds':asdict(settings),'max_match_distance_m':max_match_distance_m,
+                           'matches':matches,'unmatched_zone_ids_a':[eligible_a[i]['zone'] for i in unmatched_a],
+                           'unmatched_zone_ids_b':[eligible_b[j]['zone'] for j in unmatched_b],
+                           'excluded_partial_zone_ids_a':[z['zone'] for z in result_a['zones'] if z['quality_flags']],
+                           'excluded_partial_zone_ids_b':[z['zone'] for z in result_b['zones'] if z['quality_flags']],
+                           'excluded_intervals_a':result_a['excluded_intervals'],
+                           'excluded_intervals_b':result_b['excluded_intervals'],
+                           'warnings_a':result_a['warnings'],'warnings_b':result_b['warnings'],
+                           'note':'Matches maximize count then minimize start-position distance without crossing zone order. A-minus-B is first lap minus second in stated units. Unmatched or partial zones are not silently paired; measured differences do not establish a driving cause.'})
 
     def list_sessions(self, search='', offset=0, limit=20):
         require(type(offset) is int and offset>=0 and type(limit) is int and 1<=limit<=100,'invalid_page','Use a nonnegative offset and limit from 1 to 100.')
