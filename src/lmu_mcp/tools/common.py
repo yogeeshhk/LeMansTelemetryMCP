@@ -4,9 +4,8 @@ import json
 from typing import Annotated
 import anyio
 from pydantic import Field
-from pydantic_core import to_json
 from .. import config
-from mcp.types import ToolAnnotations
+from mcp.types import CallToolResult, TextContent, ToolAnnotations
 from mcp.server.fastmcp.exceptions import ToolError
 from ..database import InspectionError
 
@@ -29,10 +28,12 @@ class Runner:
     async def call(self,method,**arguments):
         try:
             result = await anyio.to_thread.run_sync(partial(getattr(self.service,method),**arguments),limiter=self.limiter)
-            envelope = {'content':[{'type':'text','text':to_json(result,indent=2).decode()}], 'structuredContent':result, 'isError':False}
-            if len(json.dumps(envelope,ensure_ascii=False).encode('utf-8'))+2048 > config.MAX_OUTPUT_BYTES:
+            compact = json.dumps(result, ensure_ascii=False, allow_nan=False, separators=(',', ':'))
+            envelope = CallToolResult(content=[TextContent(type='text', text=compact)],
+                                      structuredContent=result, isError=False)
+            if len(envelope.model_dump_json(exclude_none=True).encode('utf-8'))+2048 > config.MAX_OUTPUT_BYTES:
                 raise InspectionError('response_limit','MCP response is too large; reduce channels/range or increase resolution_m.')
-            return result
+            return envelope
         except InspectionError as exc:
             raise ToolError(json.dumps({'code':exc.code,'message':str(exc)},ensure_ascii=True)) from None
         except Exception:

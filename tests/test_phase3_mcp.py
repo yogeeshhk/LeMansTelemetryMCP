@@ -66,6 +66,8 @@ async def check_protocol(read,write):
             result=await client.call_tool(name,args)
             assert not result.isError,(name,result)
             assert isinstance(result.structuredContent,dict)
+            assert json.loads(result.content[0].text)==result.structuredContent
+            assert len(result.content[0].text)<len(json.dumps(result.structuredContent,indent=2))
             assert len(result.model_dump_json().encode())<300000
             assert 'PRIVATE DRIVER' not in result.model_dump_json()
         invalid=await client.call_tool('get_lap_summary',{'session_id':'race.duckdb','lap':0})
