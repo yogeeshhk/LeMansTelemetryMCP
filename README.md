@@ -1,6 +1,6 @@
 # Le Mans Ultimate telemetry MCP
 
-A personal Python project for coaching from recorded LMU telemetry. The package now provides nine read-only MCP tools for session/lap discovery, summaries, distance-aligned telemetry and lap comparison. Both stdio and Streamable HTTP have local protocol coverage. The `lmu-mcp inspect` and fixed-port `lmu-mcp serve` commands are available. The Windows/ngrok launcher and local diagnostics command are included. Public tunnel and ChatGPT validation remain open.
+A personal Python project for coaching from recorded LMU telemetry. The package provides eleven read-only MCP tools for session/lap discovery, summaries, distance-aligned telemetry and lap comparison. Both stdio and Streamable HTTP have local protocol coverage. The `lmu-mcp inspect` and fixed-port `lmu-mcp serve` commands are available. The Windows/ngrok launcher and local diagnostics command are included. Public tunnel and ChatGPT validation remain open.
 
 ## Install for development
 
@@ -78,7 +78,7 @@ tests/
     test_phase10_diagnostics.py
 ```
 
-Models, schema mapping and numerical analysis have no MCP dependency. SQL is isolated in `database.py`; MCP definitions live in `tools/`. Advanced braking-zone and corner analysis remain in their later phases.
+Models, schema mapping and numerical analysis have no MCP dependency. SQL is isolated in `database.py`; MCP definitions live in `tools/`. Braking and corner analyses are separate direct-Python modules; their MCP wrappers live in `tools/`.
 
 The `src/` layout is installed before tests, so imports exercise the package rather than loose root-level modules. Configuration follows the [setuptools pyproject guide](https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html) and the [Python packaging src-layout guidance](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/).
 
@@ -111,8 +111,10 @@ For a local client that supports **Streamable HTTP**, start `.\.venv\Scripts\lmu
 | `get_telemetry` | Inspect a short distance range with selected channels and shared distance samples. |
 | `get_braking_zones` | Detect sustained braking events on one lap, with position, speed, peak brake, ABS and throttle pickup. |
 | `compare_braking_zones` | Match two candidate laps by brake-start position and report A-minus-B differences and unmatched zones. |
+| `get_corners` | Discover approximate unnamed turns, or use exact track/layout manual definitions; page through per-corner metrics. |
+| `compare_corner` | Compare one discovered corner across 2-5 candidate laps with quality-aware metric differences. |
 
-Use `list_sessions`, then `get_session_info` and `list_laps`, then summaries, a coarse `compare_laps`, and short-range `get_telemetry` calls. For example, compare two eligible laps at 20 m spacing, find where their elapsed-time delta grows, then inspect both laps over the same 200-500 m section at 1-2 m spacing. A positive A-minus-B elapsed delta means the first requested lap is slower at that distance. For a braking question, use `get_braking_zones` on each lap and `compare_braking_zones` after the coarse comparison. See [the progressive coaching workflow](docs/progressive-querying.md) and [core tool contracts](docs/core-tools.md) for arguments, units and the numerical method.
+Use `list_sessions`, then `get_session_info` and `list_laps`, then summaries, a coarse `compare_laps`, and short-range `get_telemetry` calls. For example, compare two eligible laps at 20 m spacing, find where their elapsed-time delta grows, then inspect both laps over the same 200-500 m section at 1-2 m spacing. A positive A-minus-B elapsed delta means the first requested lap is slower at that distance. For braking questions, use `get_braking_zones` on each lap and `compare_braking_zones`. For corner questions, call `get_corners` on the reference lap, then `compare_corner` with its returned ID and 2-5 candidate laps. Inspect missing matches and quality flags before a detailed telemetry query. See [the progressive coaching workflow](docs/progressive-querying.md) and [core tool contracts](docs/core-tools.md) for arguments, units and the numerical method.
 
 Questions to try in an MCP-enabled coaching chat:
 
@@ -120,13 +122,13 @@ Questions to try in an MCP-enabled coaching chat:
 - "Compare my fastest lap with my second-fastest lap and tell me where the major differences occur."
 - "Analyse braking consistency across my five fastest benchmark-candidate laps using detected zones and their thresholds; tell me what the data cannot establish."
 - "Look closely at the braking section between 5200 m and 5450 m on two comparable laps."
-- "Compare my brake release and throttle pickup through corner 7, if I provide its distance range; do not assume a named corner map."
+- "Compare brake point, apex speed and throttle pickup at corner 7 across my fastest candidate laps; tell me if the corner is unnamed or unmatched."
 
-Braking-zone tools detect sustained brake events and compare their positions; they cannot certify a driving fault. Automatic/named corner tools remain for Phase 13. The current nine tools cannot identify a named corner without a supplied distance range. Ask for observations, uncertainty and a focused practice experiment rather than a definitive driving fault.
+Braking and corner tools find approximate events and compare their positions; they cannot certify a driving fault. Automatic corners are unnamed. A corner name requires a matching manual track/layout definition in [`src/lmu_mcp/tracks/`](src/lmu_mcp/tracks/README.md). Ask for observations, uncertainty and a focused practice experiment rather than a definitive driving fault.
 
 ## Limits, interpretation and privacy
 
-Session and lap listings use pages of at most 100. Braking analysis returns at most 128 detected zones per lap and uses configurable, bounded thresholds. Detail requests allow 1-20 channels, at most 5,000 distance samples and 20,000 estimated numeric values; comparisons use 2-10 distinct laps. The minimum spacing is 0.1 m, and responses are capped at 300 KB. If a request is rejected, use fewer channels/laps, a shorter distance range or a larger spacing. The server reads original DuckDB files with `read_only=True`, confines session IDs to the fixed root and exposes no arbitrary SQL or file-access tool.
+Session and lap listings use pages of at most 100. Braking and automatic corner analysis return at most 128 zones/ranges per lap; corner listings page at 50 rows and comparisons accept 2-5 candidate laps. Braking analysis uses configurable, bounded thresholds. Detail requests allow 1-20 channels, at most 5,000 distance samples and 20,000 estimated numeric values; comparisons use 2-10 distinct laps. The minimum spacing is 0.1 m, and responses are capped at 300 KB. If a request is rejected, use fewer channels/laps, a shorter distance range or a larger spacing. The server reads original DuckDB files with `read_only=True`, confines session IDs to the fixed root and exposes no arbitrary SQL or file-access tool.
 
 Recordings may be unavailable while LMU is writing or a WAL file remains. Sampled signal times are inferred only when the recorded clock, sample frequencies and row counts support alignment; gaps and unsupported mappings remain missing rather than being guessed. Official lap validity is unavailable in the inspected schema (`valid: null`). `benchmark_candidate` excludes known timing, pit, impact and other quality problems, but does not prove a clean lap. Compare matching car/track conditions and consider fuel, tyres, traffic and weather before attributing time loss to driving. Source units are preserved; steering is not silently converted to degrees, and four-value tyre signals have no assumed wheel order.
 

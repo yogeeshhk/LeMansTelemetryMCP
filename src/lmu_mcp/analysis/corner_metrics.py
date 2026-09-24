@@ -20,7 +20,10 @@ def automatic_ranges(session, lap, path):
     factor=speed_factor(speed.unit)
     require(factor is not None,'unknown_speed_unit',
             'Automatic corners require verified speed units of km/h or m/s.')
-    first=float(path[1][0]);last=float(path[1][-1])
+    # Some recordings start a lap a few metres below zero at the timing line.
+    # The public distance grid is nonnegative; preserve the original path for interpolation.
+    first=max(0.0,float(path[1][0]));last=float(path[1][-1])
+    require(last>first,'distance_coverage','Lap has no nonnegative forward distance for corner detection.')
     resolution=max(5.0,(last-first)/2500.0)
     require(resolution<=20,'corner_limit',
             'Recording is too long for bounded automatic corner detection; use manual ranges.')

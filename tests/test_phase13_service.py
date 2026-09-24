@@ -8,22 +8,12 @@ from lmu_mcp.manual_corners import load_manual_corners
 from lmu_mcp.service import TelemetryService
 
 
-def add_corners(recording):
-    with duckdb.connect(str(recording)) as connection:
-        connection.execute("INSERT INTO channelsList VALUES ('G Force Lat',10,'G')")
-        connection.execute('CREATE TABLE "G Force Lat"(value DOUBLE)')
-        connection.execute('INSERT INTO "G Force Lat" SELECT CASE WHEN ((rowid / 10.0 < 10 AND rowid / 10.0 BETWEEN 3 AND 6) OR (rowid / 10.0 >= 10 AND (rowid / 10.0 - 10) / 1.2 BETWEEN 3 AND 6)) THEN 0.5 ELSE 0 END FROM "GPS Time"')
-        connection.execute('UPDATE "Steering Pos" SET value=CASE WHEN ((rowid / 10.0 < 10 AND rowid / 10.0 BETWEEN 3 AND 6) OR (rowid / 10.0 >= 10 AND (rowid / 10.0 - 10) / 1.2 BETWEEN 3 AND 6)) THEN 20 ELSE 0 END')
-        connection.execute('UPDATE "Ground Speed" SET value=CASE WHEN rowid / 10.0 < 10 THEN 50 - 20 * greatest(0, 1 - abs(rowid / 10.0 - 4.5) / 1.5) ELSE 48 - 16 * greatest(0, 1 - abs((rowid / 10.0 - 10) / 1.2 - 4.5) / 1.5) END')
-        connection.execute('UPDATE "Throttle Pos" SET value=CASE WHEN rowid / 5.0 < 10 THEN CASE WHEN rowid / 5.0 < 5 THEN 0 ELSE 100 END ELSE CASE WHEN (rowid / 5.0 - 10) / 1.2 < 5 THEN 0 ELSE 100 END END')
-
-
 def service(recording):
     return TelemetryService(Repository(recording.parent))
 
 
-def test_automatic_corner_metrics_and_comparison(recording):
-    add_corners(recording)
+def test_automatic_corner_metrics_and_comparison(corner_recording):
+    recording=corner_recording
     api=service(recording)
     first=api.get_corners(recording.name,1)
     assert first['definition_source']=='automatic'
@@ -80,3 +70,15 @@ def test_corner_request_errors(recording):
         api.get_corners(recording.name,1,offset=-1)
     with pytest.raises(InspectionError,match='distinct'):
         api.compare_corner(recording.name,1,[1,1])
+
+
+def test_automatic_corners_allow_small_negative_recorded_lap_start(corner_recording):
+    recording=corner_recording
+    with duckdb.connect(str(recording)) as connection:
+        connection.execute('UPDATE "Lap Dist" SET value=-2.3 WHERE rowid=100')
+    api=service(recording)
+    corners=api.get_corners(recording.name,2)
+    assert corners['total']==1
+    assert corners['corners'][0]['start_distance_m']>=0
+    comparison=api.compare_corner(recording.name,1,[1,2])
+    assert len(comparison['comparisons'])==1

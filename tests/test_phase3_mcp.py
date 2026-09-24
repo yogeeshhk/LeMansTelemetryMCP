@@ -50,7 +50,7 @@ async def check_protocol(read,write):
         initialized=await client.initialize()
         assert initialized.serverInfo.name=='Le Mans Ultimate Telemetry'
         tools=await client.list_tools()
-        expected={'list_sessions','get_session_info','list_channels','list_laps','get_lap_summary','get_telemetry','compare_laps','get_braking_zones','compare_braking_zones'}
+        expected={'list_sessions','get_session_info','list_channels','list_laps','get_lap_summary','get_telemetry','compare_laps','get_braking_zones','compare_braking_zones','get_corners','compare_corner'}
         assert {t.name for t in tools.tools}==expected
         for tool in tools.tools:
             assert tool.annotations.readOnlyHint is True
@@ -63,7 +63,9 @@ async def check_protocol(read,write):
                ('get_telemetry',{'session_id':'race.duckdb','lap':1,'channels':['speed','gear'],'start_distance_m':45,'end_distance_m':55,'resolution_m':1}),
                ('compare_laps',{'session_id':'race.duckdb','laps':[1,2],'channels':['speed'],'start_distance_m':20,'end_distance_m':80,'resolution_m':10}),
                ('get_braking_zones',{'session_id':'race.duckdb','lap':1}),
-               ('compare_braking_zones',{'session_id':'race.duckdb','lap_a':1,'lap_b':2})]
+               ('compare_braking_zones',{'session_id':'race.duckdb','lap_a':1,'lap_b':2}),
+               ('get_corners',{'session_id':'race.duckdb','lap':1}),
+               ('compare_corner',{'session_id':'race.duckdb','corner_id':1,'laps':[1,2]})]
         for name,args in calls:
             result=await client.call_tool(name,args)
             assert not result.isError,(name,result)
@@ -72,6 +74,12 @@ async def check_protocol(read,write):
             assert len(result.content[0].text)<len(json.dumps(result.structuredContent,indent=2))
             assert len(result.model_dump_json().encode())<300000
             assert 'PRIVATE DRIVER' not in result.model_dump_json()
+        corners=await client.call_tool('get_corners',{'session_id':'race.duckdb','lap':1})
+        assert corners.structuredContent['total']==1
+        comparison=await client.call_tool('compare_corner',{'session_id':'race.duckdb','corner_id':1,'laps':[1,2]})
+        assert len(comparison.structuredContent['comparisons'])==1
+        invalid_corner=await client.call_tool('compare_corner',{'session_id':'race.duckdb','corner_id':999,'laps':[1,2]})
+        assert invalid_corner.isError and 'unknown_corner' in invalid_corner.content[0].text
         invalid=await client.call_tool('get_lap_summary',{'session_id':'race.duckdb','lap':0})
         assert invalid.isError
         escaped=await client.call_tool('get_session_info',{'session_id':'../outside.duckdb'})
@@ -83,7 +91,8 @@ async def check_protocol(read,write):
 
 
 @pytest.mark.anyio
-async def test_real_stdio_protocol(recording):
+async def test_real_stdio_protocol(corner_recording):
+    recording=corner_recording
     # Internal fixture injection, not a user-facing telemetry-directory option.
     script='from pathlib import Path; import sys; from lmu_mcp.database import Repository; from lmu_mcp.service import TelemetryService; from lmu_mcp.server import create_server; create_server(TelemetryService(Repository(Path(sys.argv[1])))).run(transport="stdio")'
     parameters=StdioServerParameters(command=sys.executable,args=['-c',script,str(recording.parent)])
@@ -92,7 +101,8 @@ async def test_real_stdio_protocol(recording):
 
 
 @pytest.mark.anyio
-async def test_real_http_protocol_and_host_validation(recording):
+async def test_real_http_protocol_and_host_validation(corner_recording):
+    recording=corner_recording
     async with http_server(recording) as url:
         async with streamable_http_client(url) as (read,write,_):
             await check_protocol(read,write)

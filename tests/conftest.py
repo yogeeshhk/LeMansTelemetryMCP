@@ -49,3 +49,19 @@ def open_session():
         with Repository(path.parent).open(path.name) as c:
             yield Session(c,inspect_connection(c,path.name))
     return factory
+
+
+def add_corners(recording):
+    with duckdb.connect(str(recording)) as connection:
+        connection.execute("INSERT INTO channelsList VALUES ('G Force Lat',10,'G')")
+        connection.execute('CREATE TABLE "G Force Lat"(value DOUBLE)')
+        connection.execute('INSERT INTO "G Force Lat" SELECT CASE WHEN ((rowid / 10.0 < 10 AND rowid / 10.0 BETWEEN 3 AND 6) OR (rowid / 10.0 >= 10 AND (rowid / 10.0 - 10) / 1.2 BETWEEN 3 AND 6)) THEN 0.5 ELSE 0 END FROM "GPS Time"')
+        connection.execute('UPDATE "Steering Pos" SET value=CASE WHEN ((rowid / 10.0 < 10 AND rowid / 10.0 BETWEEN 3 AND 6) OR (rowid / 10.0 >= 10 AND (rowid / 10.0 - 10) / 1.2 BETWEEN 3 AND 6)) THEN 20 ELSE 0 END')
+        connection.execute('UPDATE "Ground Speed" SET value=CASE WHEN rowid / 10.0 < 10 THEN 50 - 20 * greatest(0, 1 - abs(rowid / 10.0 - 4.5) / 1.5) ELSE 48 - 16 * greatest(0, 1 - abs((rowid / 10.0 - 10) / 1.2 - 4.5) / 1.5) END')
+        connection.execute('UPDATE "Throttle Pos" SET value=CASE WHEN rowid / 5.0 < 10 THEN CASE WHEN rowid / 5.0 < 5 THEN 0 ELSE 100 END ELSE CASE WHEN (rowid / 5.0 - 10) / 1.2 < 5 THEN 0 ELSE 100 END END')
+
+
+@pytest.fixture
+def corner_recording(recording):
+    add_corners(recording)
+    return recording
