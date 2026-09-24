@@ -39,3 +39,44 @@ def test_la_sarthe_measured_names_and_unsupported_complexes():
 def test_la_sarthe_pack_is_valid_under_loader_schema():
     pack = load_track_knowledge('Circuit de la Sarthe', 'Circuit de la Sarthe')
     assert validate_pack(deepcopy(pack)) == pack
+
+
+def test_shifted_boundary_and_missing_feature_do_not_invent_name():
+    pack = load_track_knowledge('Circuit de la Sarthe', 'Circuit de la Sarthe')
+    measured = {'start_distance_m': 9765, 'end_distance_m': 9900}
+    assert match_detected_corner(measured, pack)['feature_id'] == 'indianapolis'
+    shifted = {'start_distance_m': 9580, 'end_distance_m': 9700}
+    assert match_detected_corner(shifted, pack) is None
+    missing = deepcopy(pack)
+    missing['features'] = [f for f in missing['features'] if f['feature_id'] != 'indianapolis']
+    assert match_detected_corner(measured, missing) is None
+
+
+def test_source_revision_changes_guide_and_cached_corner_provenance(corner_recording, monkeypatch, tmp_path):
+    import json
+    from lmu_mcp.database import Repository
+    from lmu_mcp.service import TelemetryService
+    from lmu_mcp import track_knowledge
+
+    original = load_track_knowledge('Circuit de la Sarthe', 'Circuit de la Sarthe')
+    raw = deepcopy(original)
+    raw['track'], raw['layout'] = 'Synthetic', 'Test'
+    raw['features'] = [deepcopy(next(f for f in original['features']
+                                    if f['feature_id'] == 'tertre-rouge'))]
+    raw['features'][0].update(order=1, start_distance_m=25, end_distance_m=70,
+                              uncertainty_m=5, distance_method='Two synthetic laps')
+    directory = tmp_path / 'packs'
+    directory.mkdir()
+    path = directory / 'test.json'
+    path.write_text(json.dumps(raw), encoding='utf-8')
+    monkeypatch.setattr('lmu_mcp.service.load_track_knowledge',
+                        lambda track, layout: track_knowledge.load_track_knowledge(track, layout, directory))
+    service = TelemetryService(Repository(corner_recording.parent))
+    first = service.get_corners(corner_recording.name, 1)['corners'][0]
+    assert first['track_feature']['sources'][0]['retrieved'] == '2026-09-25'
+    raw['sources'][0]['retrieved'] = '2026-09-26'
+    path.write_text(json.dumps(raw), encoding='utf-8')
+    updated = service.get_corners(corner_recording.name, 1)['corners'][0]
+    assert updated['track_feature']['sources'][0]['retrieved'] == '2026-09-26'
+    assert updated['minimum_speed_kph'] == first['minimum_speed_kph']
+    assert service.get_track_guide(corner_recording.name)['sources'][0]['retrieved'] == '2026-09-26'

@@ -218,3 +218,26 @@ async def test_sourced_track_guide_over_http(recording, monkeypatch):
                 invalid=await client.call_tool('get_track_guide',
                                                {'session_id':'race.duckdb','limit':51})
                 assert invalid.isError
+
+
+@pytest.mark.anyio
+async def test_la_sarthe_pack_over_http(corner_recording):
+    import duckdb
+    with duckdb.connect(str(corner_recording)) as connection:
+        connection.execute("UPDATE metadata SET value='Circuit de la Sarthe' WHERE key IN ('TrackName','TrackLayout')")
+    async with http_server(corner_recording) as url:
+        async with streamable_http_client(url) as (read,write,_):
+            async with ClientSession(read,write) as client:
+                await client.initialize()
+                guide=await client.call_tool('get_track_guide',
+                    {'session_id':'race.duckdb','limit':5})
+                assert not guide.isError
+                result=guide.structuredContent
+                assert result['pack_status']=='calibrated'
+                assert result['total']==15 and result['next_offset']==5
+                assert result['features'][0]['feature_id']=='pit-straight'
+                assert result['sources'][0]['url'].startswith('https://www.24h-lemans.com/')
+                assert 'PRIVATE DRIVER' not in guide.model_dump_json()
+                missing=await client.call_tool('get_track_guide',
+                    {'session_id':'missing.duckdb'})
+                assert missing.isError

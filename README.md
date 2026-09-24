@@ -125,7 +125,7 @@ Questions to try in an MCP-enabled coaching chat:
 - "Look closely at the braking section between 5200 m and 5450 m on two comparable laps."
 - "Compare brake point, apex speed and throttle pickup at corner 7 across my fastest candidate laps; tell me if the corner is unnamed or unmatched."
 
-Braking and corner tools find approximate events and compare their positions; they cannot certify a driving fault. Automatic corners remain unnamed unless a uniquely matched, reviewed local track pack supplies a sourced name; exact user manual definitions still take precedence. The [track-knowledge guide](src/lmu_mcp/tracks/knowledge/README.md) explains pack authoring and local calibration. No real named pack is active yet. Ask for observations, uncertainty and a focused practice experiment rather than a definitive driving fault.
+Braking and corner tools find approximate events and compare their positions; they cannot certify a driving fault. Automatic corners remain unnamed unless a uniquely matched, reviewed local track pack supplies a sourced name; exact user manual definitions still take precedence. The [track-knowledge guide](src/lmu_mcp/tracks/knowledge/README.md) explains pack authoring and local calibration. An ACO-sourced La Sarthe pack is active for the exact `Circuit de la Sarthe` layout; other layouts still return `no_pack` until reviewed. Ask for observations, uncertainty and a focused practice experiment rather than a definitive driving fault.
 
 ## Limits, interpretation and privacy
 
